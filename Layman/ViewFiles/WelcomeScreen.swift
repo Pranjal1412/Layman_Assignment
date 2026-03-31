@@ -1,0 +1,129 @@
+//
+//  ContentView.swift
+//  Layman
+//
+//  Created by Pranjal Shinde on 31/03/26.
+//
+
+import SwiftUI
+import UIKit
+
+struct WelcomeScreen: View {
+    
+    var onContinue: () -> Void
+    
+    @StateObject private var viewModel = WelcomeViewModel()
+    @State private var navigate = false
+    
+    var titleText: AttributedString {
+        var text = AttributedString("Business, tech & startups\nmade simple")
+        
+        text.font = .system(size: 35, weight: .bold)
+        text.foregroundColor = Color("PrimaryTextColor")
+        
+        if let range = text.range(of: "made simple") {
+            text[range].foregroundColor = Color("AccentColor")
+        }
+        
+        return text
+    }
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                
+                LinearGradient(
+                    gradient: Gradient(stops: [
+                        .init(color: Color("AccentColor"), location: 0.0),
+                        .init(color: .white, location: 0.5),
+                        .init(color: Color("AccentColor"), location: 1.0)
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+                
+                VStack {
+                    
+                    // MARK: Top
+                    Text("Layman")
+                        .font(.system(size: 55, weight: .bold))
+                        .foregroundColor(Color("PrimaryTextColor"))
+                        .padding(.top, 60)
+                    
+                    Spacer()
+                    
+                    // MARK: Middle (AttributedString)
+                    Text(titleText)
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(4)
+                    
+                    Spacer()
+                    
+                    swipeButton
+                }
+                .padding(.bottom, 40)
+                
+            }
+            .navigationDestination(isPresented: $navigate) {
+                AuthScreen()
+            }
+            .onChange(of: viewModel.isCompleted) { _, newValue in
+                if newValue {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        navigate = true
+                    }
+                }
+            }
+            .onAppear {
+                viewModel.resetState()
+            }
+        }
+    }
+    
+    var swipeButton: some View {
+        ZStack(alignment: .leading) {
+            
+            RoundedRectangle(cornerRadius: 40)
+                .fill(Color.accent)
+                .frame(height: 60)
+            
+            RoundedRectangle(cornerRadius: 40)
+                .fill(Color.white.opacity(0.3))
+                .frame(width: viewModel.dragOffset + 60, height: 60)
+            
+            Text("Swipe to get started")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+            
+            ZStack {
+                Circle()
+                    .fill(Color.white)
+                
+                Image(systemName: "chevron.forward.2")
+                    .foregroundColor(Color("AccentColor"))
+            }
+            .frame(width: 50, height: 50)
+            .offset(x: viewModel.dragOffset + 5)
+            .gesture(
+                DragGesture()
+                    .onChanged { viewModel.updateDrag($0)}
+                    .onEnded { _ in viewModel.endDrag()
+                        if viewModel.isCompleted {
+                            let generator = UINotificationFeedbackGenerator()
+                            generator.notificationOccurred(.success)
+                        }
+
+                    }
+            )
+
+        }
+        .padding(.horizontal, 30)
+    }
+}
+
+
+#Preview {
+//    WelcomeScreen()
+}

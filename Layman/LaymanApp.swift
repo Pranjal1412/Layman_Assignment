@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct LaymanApp: App {
+    @StateObject private var authVM = AuthViewModel()
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
+                .environmentObject(authVM)
         }
     }
 }
