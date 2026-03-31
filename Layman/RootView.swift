@@ -14,7 +14,7 @@ struct RootView: View {
     var body: some View {
         Group {
             if authVM.isAuthenticated {
-                HomeScreen()
+                TabbarView()
             } else if showWelcome {
                 WelcomeScreen {
                     withAnimation { showWelcome = false }

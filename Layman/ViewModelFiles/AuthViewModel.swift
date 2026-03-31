@@ -17,6 +17,7 @@ class AuthViewModel: ObservableObject {
     @Published var email: String = ""
     @Published var password: String = ""
     @Published var confirmPassword: String = ""
+    @Published var isLoading = false   // <-- loader flag
     
     @Published var errorMessage: String?
     @Published var isAuthenticated: Bool = false
@@ -29,6 +30,7 @@ class AuthViewModel: ObservableObject {
     
     @MainActor
     func performAuth() async {
+        isLoading = true
         // Reset error
         errorMessage = nil
         
@@ -74,9 +76,16 @@ class AuthViewModel: ObservableObject {
                 isAuthenticated = true
             }
         } catch {
-            errorMessage = error.localizedDescription
+            let description = error.localizedDescription.lowercased()
+            if mode == .signup && (description.contains("already") || description.contains("registered")) {
+                errorMessage = "User already exists."
+            } else {
+                errorMessage = error.localizedDescription
+            }
             isAuthenticated = false
         }
+        
+        isLoading = false
     }
     
     private func signup() async {

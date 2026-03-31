@@ -10,6 +10,7 @@ import SwiftUI
 @main
 struct LaymanApp: App {
     @StateObject private var authVM = AuthViewModel()
+    @AppStorage("isLoggedIn") var isLoggedIn: Bool = false
     
     var body: some Scene {
         WindowGroup {

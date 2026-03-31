@@ -16,7 +16,7 @@ final class SupabaseManager {
     private init() {
         self.client = SupabaseClient(
                     supabaseURL: URL(string: "https://kbyeghoowqmccgsuyotk.supabase.co")!,
-                    supabaseKey: "sb_publishable_3YkawHAzUJnhSbLBaQYaYA_cmgRGxxxx",
+                    supabaseKey: "sb_publishable_3YkawHAzUJnhSbLBaQYaYA_cmgRGiDq",
                     options: SupabaseClientOptions(auth: .init(emitLocalSessionAsInitialSession: true)))
     }
     

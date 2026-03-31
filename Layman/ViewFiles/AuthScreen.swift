@@ -9,10 +9,10 @@ import SwiftUI
 
 struct AuthScreen: View {
 
+    @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
     @StateObject private var viewModel = AuthViewModel()
     @State private var showPassword = false
     @State private var showConfirmPassword = false
-    @State private var navigateToHome = false // <-- track navigation
 
     init() {
         UISegmentedControl.appearance().selectedSegmentTintColor = UIColor.accent
@@ -28,14 +28,9 @@ struct AuthScreen: View {
         NavigationStack {
             ZStack {
 
-                LinearGradient(
-                    colors: [
-                        Color("AccentColor"),
-                        Color(.white),
-                        Color("AccentColor")
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
+                LinearGradient(colors: [Color("AccentColor"), Color(.white), Color("AccentColor")],
+                               startPoint: .top,
+                               endPoint: .bottom
                 )
                 .ignoresSafeArea()
                 .onTapGesture {
@@ -87,17 +82,6 @@ struct AuthScreen: View {
                                 .transition(.move(edge: .top).combined(with: .opacity))
                             }
 
-                            // Forgot Password
-                            if viewModel.mode == .login {
-                                HStack {
-                                    Spacer()
-                                    Button("Forgot Password?") { }
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.gray)
-                                }
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
-                            }
-
                             // Error message
                             if let errorMessage = viewModel.errorMessage {
                                 Text(errorMessage)
@@ -112,7 +96,7 @@ struct AuthScreen: View {
                                 Task {
                                     await viewModel.performAuth()
                                     if viewModel.isAuthenticated {
-                                        navigateToHome = true // <-- navigate on success
+                                        isLoggedIn = true // persist login state
                                     }
                                 }
                             }) {
@@ -138,19 +122,19 @@ struct AuthScreen: View {
                     Spacer()
                 }
 
-            }
-            .navigationDestination(isPresented: $navigateToHome) {
-                HomeScreen()
-                    .environmentObject(viewModel)
+                // Loader overlay
+                if viewModel.isLoading {
+                    Color.black.opacity(0.3).ignoresSafeArea()
+                    ProgressView("Please wait...")
+                        .padding()
+                        .background(Color("AccentColor").opacity(0.1))
+                        .foregroundColor(Color("AccentColor"))
+                        .tint(Color("AccentColor"))
+                        .cornerRadius(12)
+                        .shadow(radius: 10)
+                }
             }
         }
-    }
-}
-
-extension UIApplication {
-    func dismissKeyboard() {
-        sendAction(#selector(UIResponder.resignFirstResponder),
-                   to: nil, from: nil, for: nil)
     }
 }
 
@@ -171,7 +155,7 @@ struct CustomTextField: View {
                         .foregroundColor(Color.orange.opacity(0.5))
                 }
                 TextField("", text: $text)
-                    .foregroundColor(Color("AccentColor")) // <-- changed
+                    .foregroundColor(Color("AccentColor"))
             }
         }
         .padding()
@@ -198,10 +182,10 @@ struct CustomSecureField: View {
                 }
                 if showText {
                     TextField("", text: $text)
-                        .foregroundColor(Color("AccentColor")) // <-- changed
+                        .foregroundColor(Color("AccentColor"))
                 } else {
                     SecureField("", text: $text)
-                        .foregroundColor(Color("AccentColor")) // <-- changed
+                        .foregroundColor(Color("AccentColor"))
                 }
             }
 
@@ -217,8 +201,16 @@ struct CustomSecureField: View {
         .cornerRadius(12)
     }
 }
-// MARK: - Preview
 
+// MARK: - UIApplication Extension
+extension UIApplication {
+    func dismissKeyboard() {
+        sendAction(#selector(UIResponder.resignFirstResponder),
+                   to: nil, from: nil, for: nil)
+    }
+}
+
+// MARK: - Preview
 #Preview {
     AuthScreen()
 }
