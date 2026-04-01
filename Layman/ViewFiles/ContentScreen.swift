@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Kingfisher
+import SafariServices
 
 struct ContentScreenView: View {
     @Environment(\.dismiss) var dismiss
@@ -47,6 +48,16 @@ struct ContentScreenView: View {
                     Button(action: { showOriginalArticle = true }) {
                         Image(systemName: "link")
                     }
+                    .sheet(isPresented: $showOriginalArticle) {
+                        if let url = URL(string: article.link) {
+                            SafariView(url: url)
+                                .edgesIgnoringSafeArea(.all)
+                        } else {
+                            Text("Invalid URL")
+                        }
+                    }
+                    
+                    //bookmark button
                     Button(action: {
                         Task {
                             isSaved.toggle()
@@ -66,6 +77,8 @@ struct ContentScreenView: View {
                         Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
                             .foregroundColor(isSaved ? accentColor : primaryTextColor)
                     }
+                    
+                    //share button
                     Button(action: { shareArticle() }) {
                         Image(systemName: "square.and.arrow.up")
                     }
@@ -219,4 +232,17 @@ struct OriginalArticlePopup: View {
             }
         }
     }
+}
+
+// 1. SwiftUI wrapper for SFSafariViewController
+struct SafariView: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        let safariVC = SFSafariViewController(url: url)
+        safariVC.dismissButtonStyle = .close
+        return safariVC
+    }
+
+    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) { }
 }
