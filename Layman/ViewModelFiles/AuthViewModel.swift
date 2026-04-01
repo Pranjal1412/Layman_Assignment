@@ -34,62 +34,75 @@ class AuthViewModel: ObservableObject {
     
     @MainActor
     func performAuth() async {
-        isLoading = true
-        // Reset error
-        errorMessage = nil
+        await MainActor.run {
+            isLoading = true
+            errorMessage = nil
+        }
+        
+        defer {
+            Task { await MainActor.run { isLoading = false } }
+        }
         
         // Basic validation
         if email.isEmpty {
-            errorMessage = "Email cannot be empty."
-            isAuthenticated = false
+            await MainActor.run {
+                errorMessage = "Email cannot be empty."
+                isAuthenticated = false
+            }
             return
         }
+        
         if password.isEmpty {
-            errorMessage = "Password cannot be empty."
-            isAuthenticated = false
+            await MainActor.run {
+                errorMessage = "Password cannot be empty."
+                isAuthenticated = false
+            }
             return
         }
+        
         if mode == .signup {
             if password.count < 6 {
-                errorMessage = "Password must be at least 6 characters."
-                isAuthenticated = false
+                await MainActor.run {
+                    errorMessage = "Password must be at least 6 characters."
+                    isAuthenticated = false
+                }
                 return
             }
             if password != confirmPassword {
-                errorMessage = "Passwords do not match."
-                isAuthenticated = false
+                await MainActor.run {
+                    errorMessage = "Passwords do not match."
+                    isAuthenticated = false
+                }
                 return
             }
         }
         
-        // Call Supabase
+        // Supabase authentication
         do {
             switch mode {
             case .signup:
-                let _ = try await SupabaseManager.shared.client.auth.signUp(
-                    email: email,
-                    password: password
-                )
-                isAuthenticated = true
-
+                let _ = try await SupabaseManager.shared.client.auth.signUp(email: email, password: password)
             case .login:
-                let _ = try await SupabaseManager.shared.client.auth.signIn(
-                    email: email,
-                    password: password
-                )
+                let _ = try await SupabaseManager.shared.client.auth.signIn(email: email, password: password)
+            }
+            
+            // Success → update on main thread
+            await MainActor.run {
                 isAuthenticated = true
             }
+            
         } catch {
+            // Handle error on main thread
             let description = error.localizedDescription.lowercased()
-            if mode == .signup && (description.contains("already") || description.contains("registered")) {
-                errorMessage = "User already exists."
-            } else {
-                errorMessage = error.localizedDescription
+            await MainActor.run {
+                if mode == .signup && (description.contains("already") || description.contains("registered")) {
+                    errorMessage = "User already exists."
+                } else {
+                    errorMessage = error.localizedDescription
+                }
+                isAuthenticated = false
             }
-            isAuthenticated = false
         }
-        
-        isLoading = false
     }
     
     private func signup() async {

@@ -9,8 +9,8 @@ import SwiftUI
 
 struct AuthScreen: View {
 
+    @EnvironmentObject var viewModel: AuthViewModel
     @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
-    @StateObject private var viewModel = AuthViewModel()
     @State private var showPassword = false
     @State private var showConfirmPassword = false
 
@@ -28,7 +28,9 @@ struct AuthScreen: View {
         NavigationStack {
             ZStack {
 
-                LinearGradient(colors: [Color("AccentColor"), Color(.white), Color("AccentColor")],
+                LinearGradient(colors: [Color(red: 0.906, green: 0.784, blue: 0.706),
+                                        Color(.white),
+                                        Color(red: 0.906, green: 0.784, blue: 0.706)],
                                startPoint: .top,
                                endPoint: .bottom
                 )
@@ -202,7 +204,6 @@ struct CustomSecureField: View {
     }
 }
 
-// MARK: - UIApplication Extension
 extension UIApplication {
     func dismissKeyboard() {
         sendAction(#selector(UIResponder.resignFirstResponder),
@@ -210,7 +211,6 @@ extension UIApplication {
     }
 }
 
-// MARK: - Preview
 #Preview {
     AuthScreen()
 }

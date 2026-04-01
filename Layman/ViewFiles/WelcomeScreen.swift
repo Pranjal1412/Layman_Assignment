@@ -34,9 +34,9 @@ struct WelcomeScreen: View {
                 
                 LinearGradient(
                     gradient: Gradient(stops: [
-                        .init(color: Color("AccentColor"), location: 0.0),
+                        .init(color: Color(red: 0.906, green: 0.784, blue: 0.706), location: 0.0),
                         .init(color: .white, location: 0.5),
-                        .init(color: Color("AccentColor"), location: 1.0)
+                        .init(color: Color(red: 0.906, green: 0.784, blue: 0.706), location: 1.0)
                     ]),
                     startPoint: .top,
                     endPoint: .bottom
@@ -57,6 +57,8 @@ struct WelcomeScreen: View {
                     Text(titleText)
                         .multilineTextAlignment(.center)
                         .lineSpacing(4)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 15)
                     
                     Spacer()
                     

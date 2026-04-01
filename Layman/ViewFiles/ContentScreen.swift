@@ -146,6 +146,7 @@ struct ContentScreenView: View {
                             }
                         }
                     }
+                    .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 6)
                 }
                 .padding(.bottom, 20) // Some padding before the fixed button area
             }
