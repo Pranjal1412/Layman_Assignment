@@ -14,6 +14,7 @@ struct ContentScreenView: View {
     @State private var currentPage = 0
     @State private var showOriginalArticle = false
     
+    var savedArticlesVM: SavedArticlesViewModel?  
     private let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
     let article: NewsArticle
     
@@ -21,9 +22,10 @@ struct ContentScreenView: View {
     let primaryTextColor = Color.primaryText
     let accentColor = Color.accent
 
-    init(article: NewsArticle, isSaved: Bool = false) {
+    init(article: NewsArticle, isSaved: Bool = false, savedArticlesVM: SavedArticlesViewModel? = nil) {
         self.article = article
         self._isSaved = State(initialValue: isSaved)
+        self.savedArticlesVM = savedArticlesVM
     }
 
     var body: some View {
@@ -46,8 +48,20 @@ struct ContentScreenView: View {
                         Image(systemName: "link")
                     }
                     Button(action: {
-                        isSaved.toggle()
-                        hapticFeedback.impactOccurred()
+                        Task {
+                            isSaved.toggle()
+
+                            if isSaved {
+                                await saveArticle(article)
+                            }
+                            else {
+                                await deleteSavedArticle(article)
+                                DispatchQueue.main.async {
+                                    savedArticlesVM?.remove(article)
+                                }
+                            }
+                            hapticFeedback.impactOccurred()
+                        }
                     }) {
                         Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
                             .foregroundColor(isSaved ? accentColor : primaryTextColor)

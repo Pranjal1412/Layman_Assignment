@@ -9,7 +9,7 @@ import SwiftUI
 
 struct SavedArticleScreen: View {
 
-    @State private var savedArticles: [NewsArticle] = []
+    @StateObject private var viewModel = SavedArticlesViewModel()
     
     var body: some View {
         NavigationStack {
@@ -19,7 +19,7 @@ struct SavedArticleScreen: View {
                 Layman_NavBar(title: "Saved", hideSearch: false)
                 
                 // List
-                if savedArticles.isEmpty {
+                if viewModel.savedArticles.isEmpty {
                     VStack {
                         Spacer()
                         
@@ -32,8 +32,8 @@ struct SavedArticleScreen: View {
                 } else {
                     ScrollView {
                         VStack(spacing: 12) {
-                            ForEach(savedArticles) { article in
-                                NavigationLink(destination: ContentScreenView(article: article, isSaved: true)) {
+                            ForEach(viewModel.savedArticles) { article in
+                                NavigationLink(destination: ContentScreenView(article: article, isSaved: true, savedArticlesVM: viewModel)) {
                                     ArticleRow(article: article)
                                 }
                             }
@@ -45,11 +45,10 @@ struct SavedArticleScreen: View {
             }
             .background(.viewBackground)
         }
-        .task {
-            if let articles = await fetchSavedArticles() {
-                savedArticles = articles
+        .onAppear {
+            Task {
+                await viewModel.fetch()
             }
         }
-
     }
 }

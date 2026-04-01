@@ -9,7 +9,8 @@ import Foundation
 import Supabase
 
 struct NewsArticle: Identifiable, Codable {
-    let id = UUID()   
+    var id = UUID()              // local Swift UUID for UI
+    var dbId: String? = nil           // Supabase row UUID
     let title: String
     let link: String
     let description: String?
@@ -22,6 +23,7 @@ struct NewsArticle: Identifiable, Codable {
         case title, link, description, pubDate, source_name, image_url, category
     }
 }
+
 extension NewsArticle {
     static let featuredArticles: [NewsArticle] = []
     static let todaysPicks: [NewsArticle] = []
@@ -79,6 +81,8 @@ func fetchSavedArticles() async -> [NewsArticle]? {
 
         let mappedArticles: [NewsArticle] = response.map {
             NewsArticle(
+                id: UUID(),                     // UI purposes
+                dbId: $0.id.uuidString,                    // Supabase row ID
                 title: $0.title,
                 link: $0.link,
                 description: $0.description,
@@ -88,12 +92,28 @@ func fetchSavedArticles() async -> [NewsArticle]? {
                 category: $0.category.components(separatedBy: ", ")
             )
         }
-
-        print(mappedArticles)
         return mappedArticles
         
     } catch {
         print("Error fetching articles:", error)
         return nil
+    }
+}
+
+func deleteSavedArticle(_ article: NewsArticle) async {
+    guard let userId = SupabaseManager.shared.client.auth.currentUser?.id,
+          let articleDbId = article.dbId else { return }
+
+    do {
+        _ = try await SupabaseManager.shared.client
+            .from("saved_articles")
+            .delete()
+            .eq("id", value: articleDbId)
+            .eq("user_id", value: userId.uuidString)
+            .execute()
+
+        print("Deleted successfully")
+    } catch {
+        print("Delete failed:", error)
     }
 }

@@ -256,7 +256,3 @@ struct ArticleRow: View {
         .padding(.horizontal, 16)
     }
 }
-
-#Preview {
-    TabbarView()
-}
