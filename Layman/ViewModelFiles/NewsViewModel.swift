@@ -8,31 +8,56 @@
 import SwiftUI
 import Combine
 
+@MainActor
 class NewsViewModel: ObservableObject {
+    
     @Published var featuredArticles: [NewsArticle] = []
     @Published var todaysPicks: [NewsArticle] = []
-
-    private let urlString = "https://newsdata.io/api/1/latest?apikey=pub_3be55bba17f748d3b26e6bcbe6f138fb&q=business,technology&country=in,us,cn&language=en&category=business,technology&prioritydomain=medium&image=1&video=0&removeduplicate=1&excludefield=source_id,source_url,source_icon,source_priority,video_url,pubdatetz,content,language,ai_tag,sentiment,sentiment_stats,ai_region,ai_org,ai_summary,duplicate"
-
+    
+    private let urlString = "https://newsdata.io/api/1/latest?apikey=pub_1cbc7f79b2904630be65e5789d729728&country=in,us&language=en&category=business,technology&prioritydomain=medium&image=1&removeduplicate=1&sort=pubdateasc&excludefield=source_id,source_url,source_icon,source_priority,video_url,pubdatetz,content,language,ai_tag,sentiment,sentiment_stats,ai_region,ai_org,duplicate,ai_summary,keywords,creator,country"
+    
     func loadNews() {
-        guard let url = URL(string: urlString) else { return }
-
-        URLSession.shared.dataTask(with: url) { data, _, error in
-            guard let data = data, error == nil else { return }
-
+        print("loadNews called")
+        
+        Task {
             do {
-                let response = try JSONDecoder().decode([NewsArticle].self, from: data)
-                
-                // Example: split first 3 as featured, rest as picks
-                DispatchQueue.main.async {
-                    self.featuredArticles = Array(response.prefix(3))
-                    self.todaysPicks = Array(response.dropFirst(3))
+                guard let url = URL(string: urlString) else {
+                    print("Invalid URL")
+                    return
                 }
+                
+                let (data, response) = try await URLSession.shared.data(from: url)
+                
+                // Validate response
+                if let httpResponse = response as? HTTPURLResponse,
+                   httpResponse.statusCode != 200 {
+                    print("Invalid response: \(httpResponse.statusCode)")
+                    return
+                }
+                
+                let decoded = try JSONDecoder().decode(NewsResponse.self, from: data)
+                
+                // STRICT FILTER: Only articles with valid images
+                let validArticles = decoded.results.filter {
+                    guard let image = $0.image_url,
+                          !image.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                          URL(string: image) != nil
+                    else {
+                        return false
+                    }
+                    return true
+                }
+                
+                print("Total articles: \(decoded.results.count)")
+                print("Valid articles with images: \(validArticles.count)")
+                
+                // Assign filtered data
+                self.featuredArticles = Array(validArticles.prefix(3))
+                self.todaysPicks = Array(validArticles.dropFirst(3))
+                
             } catch {
-                print("Decoding error: \(error)")
+                print("Error:", error)
             }
-        }.resume()
+        }
     }
 }
-
-

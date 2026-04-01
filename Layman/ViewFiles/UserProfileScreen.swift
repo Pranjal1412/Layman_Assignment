@@ -16,62 +16,21 @@ struct UserProfileScreen: View {
 
             VStack(spacing: 0) {
 
-                // Top Bar
-                topBar
+                Layman_NavBar(title: "Profile", hideSearch: true)
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 24) {
-
-                        // Avatar + Name
                         profileHeader
-
-                        // Account Details
                         accountDetails
-
-                        // Sign Out
                         signOutButton
                     }
                     .padding(.top, 28)
                     .padding(.bottom, 40)
                 }
+                .background(Color.viewBackground)
             }
         }
     }
-
-    // MARK: - Top Bar
-
-    private var topBar: some View {
-        HStack {
-            Spacer()
-
-            Text("Profile")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundColor(primaryText)
-
-            Spacer()
-        }
-        .overlay(
-            HStack {
-                Spacer()
-                Button("Edit") {
-                    // Edit action
-                }
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(Color.accentColor)
-                .padding(.trailing, 20)
-            }
-        )
-        .frame(height: 52)
-        .background(Color.viewBackground)
-        .overlay(
-            Rectangle()
-                .frame(height: 0.5)
-                .foregroundColor(Color.primaryText.opacity(0.1)),
-            alignment: .bottom
-        )
-    }
-
-    // MARK: - Profile Header
 
     private var profileHeader: some View {
         VStack(spacing: 10) {
@@ -87,15 +46,15 @@ struct UserProfileScreen: View {
                     )
 
                 // Edit badge
-                Circle()
-                    .fill(Color.accentColor)
-                    .frame(width: 26, height: 26)
-                    .overlay(
-                        Image(systemName: "pencil")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.white)
-                    )
-                    .offset(x: 2, y: 2)
+//                Circle()
+//                    .fill(Color.accentColor)
+//                    .frame(width: 26, height: 26)
+//                    .overlay(
+//                        Image(systemName: "pencil")
+//                            .font(.system(size: 11, weight: .bold))
+//                            .foregroundColor(.white)
+//                    )
+//                    .offset(x: 2, y: 2)
             }
 
             // Name
@@ -156,7 +115,9 @@ struct UserProfileScreen: View {
 
     private var signOutButton: some View {
         Button(action: {
-            authVM.signOut()
+            Task {
+                await authVM.logout()
+            }
         }) {
             HStack(spacing: 8) {
                 Image(systemName: "rectangle.portrait.and.arrow.right")

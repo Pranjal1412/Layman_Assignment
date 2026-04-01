@@ -17,10 +17,14 @@ class AuthViewModel: ObservableObject {
     @Published var email: String = ""
     @Published var password: String = ""
     @Published var confirmPassword: String = ""
-    @Published var isLoading = false   // <-- loader flag
+    @Published var isLoading = false   
     
     @Published var errorMessage: String?
     @Published var isAuthenticated: Bool = false
+    
+    var displayName: String {
+        email.isEmpty ? "User" : email.components(separatedBy: "@").first ?? "User"
+    }
     
     var isValid: Bool {
         if email.isEmpty || password.isEmpty { return false }

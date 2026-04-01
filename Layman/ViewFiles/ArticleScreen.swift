@@ -6,9 +6,12 @@
 //
 
 import SwiftUI
-// MARK: - Home Tab
+import Kingfisher
 
 struct ArticleScreen: View {
+    
+    @StateObject private var viewModel = NewsViewModel()
+    
     var body: some View {
         VStack(spacing: 0) {
             // Navigation Bar
@@ -17,15 +20,18 @@ struct ArticleScreen: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
                     // Featured Carousel
-                    FeaturedCarousel(articles: NewsArticle.featuredArticles)
-
-                    // Today's Picks
-                    TodaysPicksSection(articles: NewsArticle.todaysPicks)
+                    FeaturedCarousel(articles: viewModel.featuredArticles)
+                    TodaysPicksSection(articles: viewModel.todaysPicks)
                 }
                 .padding(.bottom, 24)
             }
         }
         .background(Color.viewBackground)
+        .onAppear {
+            if viewModel.featuredArticles.isEmpty {
+                viewModel.loadNews()
+            }
+        }
     }
 }
 
@@ -75,7 +81,7 @@ struct FeaturedCarousel: View {
                         .tag(index)
                         .onTapGesture {
                             // Navigate to article detail
-                            print("Tapped featured: \(article.headline)")
+                            print("Tapped featured: \(article.title)")
                         }
                 }
             }
@@ -144,7 +150,7 @@ struct FeaturedArticleCard: View {
                 .overlay(
                     VStack(alignment: .leading, spacing: 4) {
                         // Category pill
-                        Text(article.category)
+                        Text("\(Text(article.category.first ?? "News"))")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundColor(.white)
                             .padding(.horizontal, 8)
@@ -153,7 +159,7 @@ struct FeaturedArticleCard: View {
                             .cornerRadius(4)
 
                         // Headline
-                        Text(article.headline)
+                        Text(article.title)
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
                             .lineLimit(2)
@@ -202,9 +208,8 @@ struct TodaysPicksSection: View {
                 ForEach(articles) { article in
                     ArticleRow(article: article)
                         .onTapGesture {
-                            print("Tapped article: \(article.headline)")
+                            print("Tapped article: \(article.title)")
                         }
-
                 }
             }
             .background(Color.white.opacity(0.45))
@@ -223,15 +228,18 @@ struct ArticleRow: View {
 
             // Thumbnail
             ZStack {
-                if UIImage(named: article.imageName) != nil {
-                    Image(article.imageName)
+                if let urlString = article.image_url,
+                   let url = URL(string: urlString) {
+                    
+                    KFImage(url)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                } else {
+                }
+                else {
                     // fallback to SF Symbol
                     Color.gray.opacity(0.15)
 
-                    Image(systemName: article.imageName)
+                    Image(systemName: "photo.fill")
                         .font(.system(size: 22))
                         .foregroundColor(.gray.opacity(0.6))
                 }
@@ -240,7 +248,7 @@ struct ArticleRow: View {
             .clipShape(RoundedRectangle(cornerRadius: 23))
 
             // Headline
-            Text(article.headline)
+            Text(article.title)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.primaryText)
                 .lineLimit(3)

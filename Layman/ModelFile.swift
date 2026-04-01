@@ -8,7 +8,7 @@
 import Foundation
 
 struct NewsArticle: Identifiable, Codable {
-    var id = UUID()                  // local unique ID for SwiftUI List
+    let id = UUID()   
     let title: String
     let link: String
     let description: String?
@@ -16,9 +16,16 @@ struct NewsArticle: Identifiable, Codable {
     let source_name: String
     let image_url: String?
     let category: [String]
-}
 
+    enum CodingKeys: String, CodingKey {
+        case title, link, description, pubDate, source_name, image_url, category
+    }
+}
 extension NewsArticle {
     static let featuredArticles: [NewsArticle] = []
     static let todaysPicks: [NewsArticle] = []
+}
+
+struct NewsResponse: Codable {
+    let results: [NewsArticle]
 }
