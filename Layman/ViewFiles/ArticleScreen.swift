@@ -17,10 +17,10 @@ struct ArticleScreen: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
                     // Featured Carousel
-                    FeaturedCarousel(articles: Article.featuredArticles)
+                    FeaturedCarousel(articles: NewsArticle.featuredArticles)
 
                     // Today's Picks
-                    TodaysPicksSection(articles: Article.todaysPicks)
+                    TodaysPicksSection(articles: NewsArticle.todaysPicks)
                 }
                 .padding(.bottom, 24)
             }
@@ -58,13 +58,13 @@ struct Layman_NavBar: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
-        .background(Color.cellBackground)
+        .background(Color.viewBackground)
     }
 }
 // MARK: - Featured Carousel
 
 struct FeaturedCarousel: View {
-    let articles: [Article]
+    let articles: [NewsArticle]
     @State private var currentPage = 0
 
     var body: some View {
@@ -99,7 +99,7 @@ struct FeaturedCarousel: View {
 // MARK: - Featured Article Card
 
 struct FeaturedArticleCard: View {
-    let article: Article
+    let article: NewsArticle
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
@@ -172,7 +172,7 @@ struct FeaturedArticleCard: View {
 // MARK: - Today's Picks Section
 
 struct TodaysPicksSection: View {
-    let articles: [Article]
+    let articles: [NewsArticle]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -216,7 +216,7 @@ struct TodaysPicksSection: View {
 // MARK: - Article Row
 
 struct ArticleRow: View {
-    let article: Article
+    let article: NewsArticle
 
     var body: some View {
         HStack(spacing: 12) {
