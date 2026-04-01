@@ -1,5 +1,5 @@
 //
-//  HomeScreen.swift
+//  ArticleScreen.swift
 //  Layman
 //
 //  Created by Pranjal Shinde on 31/03/26.
@@ -13,23 +13,25 @@ struct ArticleScreen: View {
     @StateObject private var viewModel = NewsViewModel()
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Navigation Bar
-            Layman_NavBar(title: "Layman", hideSearch: false)
+        NavigationStack {
+            VStack(spacing: 0) {
 
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 20) {
-                    // Featured Carousel
-                    FeaturedCarousel(articles: viewModel.featuredArticles)
-                    TodaysPicksSection(articles: viewModel.todaysPicks)
+                Layman_NavBar(title: "Layman", hideSearch: false)
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 20) {
+
+                        FeaturedCarousel(articles: viewModel.featuredArticles)
+                        TodaysPicksSection(articles: viewModel.todaysPicks)
+                    }
+                    .padding(.bottom, 24)
                 }
-                .padding(.bottom, 24)
             }
-        }
-        .background(Color.viewBackground)
-        .onAppear {
-            if viewModel.featuredArticles.isEmpty {
-                viewModel.loadNews()
+            .background(Color.viewBackground)
+            .onAppear {
+                if viewModel.featuredArticles.isEmpty {
+//                    viewModel.loadNews()
+                }
             }
         }
     }
@@ -67,111 +69,103 @@ struct Layman_NavBar: View {
         .background(Color.viewBackground)
     }
 }
+
 // MARK: - Featured Carousel
 
 struct FeaturedCarousel: View {
     let articles: [NewsArticle]
-    @State private var currentPage = 0
+    // Default to index 1 (middle) if data exists
+    @State private var currentPage = 1
+    private let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 15) {
             TabView(selection: $currentPage) {
                 ForEach(Array(articles.enumerated()), id: \.offset) { index, article in
-                    FeaturedArticleCard(article: article)
-                        .tag(index)
-                        .onTapGesture {
-                            // Navigate to article detail
-                            print("Tapped featured: \(article.title)")
-                        }
+                    NavigationLink(destination: ContentScreenView(article: article)) {
+                        FeaturedArticleCard(article: article)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    // Padding here allows the "Peek" of the previous/next cards
+                    .padding(.horizontal, 8)
+                    .tag(index)
                 }
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-            .frame(height: 220)
-            .padding(.horizontal, 20)
+            .frame(height: 250)
+            .onChange(of: currentPage) { oldValue, newValue in
+                hapticFeedback.impactOccurred()
+                print("Changed from \(oldValue) to \(newValue)")
+            }
 
-            // Page Indicator Dots
             HStack(spacing: 6) {
                 ForEach(0..<articles.count, id: \.self) { index in
-                    Circle()
-                        .fill(index == currentPage ? Color.accent : Color.primaryText.opacity(0.25))
-                        .frame(width: index == currentPage ? 8 : 6, height: index == currentPage ? 8 : 6)
-                        .animation(.spring(response: 0.3), value: currentPage)
+                    Capsule()
+                        .fill(index == currentPage ? Color.accent : Color.primaryText.opacity(0.2))
+                        .frame(width: index == currentPage ? 18 : 6, height: 6)
+                        .animation(.spring(), value: currentPage)
                 }
+            }
+        }
+        .onAppear {
+            if articles.count > 1 {
+                currentPage = 1
+            } else {
+                currentPage = 0
             }
         }
     }
 }
 
-// MARK: - Featured Article Card
+// MARK: - Featured Article Card (Updated Design)
 
 struct FeaturedArticleCard: View {
     let article: NewsArticle
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            // Background Image
-            // Replace with AsyncImage or Image(article.imageName) for real assets
             GeometryReader { geo in
-                Rectangle()
-                    .fill(Color.accent.opacity(0.85))
-                    .overlay(
-                        // Placeholder pattern — replace with actual Image asset
-                        ZStack {
-                            Color.primaryText.opacity(0.15)
-                            VStack {
-                                Spacer()
-                                HStack {
-                                    Spacer()
-                                    Image(systemName: "photo")
-                                        .font(.system(size: 40))
-                                        .foregroundColor(.white.opacity(0.2))
-                                    Spacer()
-                                }
-                                Spacer()
-                            }
-                        }
-                    )
-            }
-
-            // Bottom gradient + text
-            VStack(alignment: .leading, spacing: 0) {
-                Spacer()
-
-                // Gradient overlay
+                // Image layer
+                if let urlString = article.image_url, let url = URL(string: urlString) {
+                    KFImage(url)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: geo.size.width, height: geo.size.height)
+                        .clipped()
+                } else {
+                    Rectangle()
+                        .fill(Color.accent.opacity(0.8))
+                }
+                
+                // Legibility Gradient (Solves the "White Photo" issue)
                 LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color.black.opacity(0),
-                        Color.black.opacity(0.65)
-                    ]),
+                    gradient: Gradient(colors: [.clear, .black.opacity(0.7)]),
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                .frame(height: 110)
-                .overlay(
-                    VStack(alignment: .leading, spacing: 4) {
-                        // Category pill
-                        Text("\(Text(article.category.first ?? "News"))")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(Color.white.opacity(0.25))
-                            .cornerRadius(4)
-
-                        // Headline
-                        Text(article.title)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.bottom, 14),
-                    alignment: .bottomLeading
-                )
             }
+
+            VStack(alignment: .leading, spacing: 12) {
+                // Logo/Category Box (Layman style)
+                Text(article.category.first?.uppercased() ?? "NEWS")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 4)
+                    .background(Color.accent.opacity(0.2))
+                    .cornerRadius(10)
+                
+                // Conversational Headline
+                Text(article.title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+            }
+            .padding(20)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: 24)) // Smoother corners
+        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
     }
 }
 
@@ -206,10 +200,10 @@ struct TodaysPicksSection: View {
             // Article List
             VStack(spacing: 8) {
                 ForEach(articles) { article in
-                    ArticleRow(article: article)
-                        .onTapGesture {
-                            print("Tapped article: \(article.title)")
-                        }
+                    NavigationLink(destination: ContentScreenView(article: article)) {
+                        ArticleRow(article: article)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
             .background(Color.white.opacity(0.45))
@@ -217,8 +211,6 @@ struct TodaysPicksSection: View {
         }
     }
 }
-
-// MARK: - Article Row
 
 struct ArticleRow: View {
     let article: NewsArticle
