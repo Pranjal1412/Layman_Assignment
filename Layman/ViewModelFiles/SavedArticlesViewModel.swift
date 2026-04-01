@@ -11,10 +11,20 @@ import Combine
 
 class SavedArticlesViewModel: ObservableObject {
     @Published var savedArticles: [NewsArticle] = []
+    @Published var isLoading = false    // Loader state
 
     func fetch() async {
-        guard let articles = await fetchSavedArticles() else { return }
-        DispatchQueue.main.async { self.savedArticles = articles }
+        DispatchQueue.main.async { self.isLoading = true }  // Start loader
+
+        guard let articles = await fetchSavedArticles() else {
+            DispatchQueue.main.async { self.isLoading = false }  // Stop loader on failure
+            return
+        }
+
+        DispatchQueue.main.async {
+            self.savedArticles = articles
+            self.isLoading = false   // Stop loader on success
+        }
     }
 
     func remove(_ article: NewsArticle) {

@@ -6,9 +6,9 @@
 //
 
 import SwiftUI
-// MARK: - Articles Screen
 
 struct TabbarView: View {
+    var onSignOut: (() -> Void)?
     @State private var selectedTab = 0
 
     var body: some View {
@@ -16,12 +16,12 @@ struct TabbarView: View {
             ArticleScreen()
                 .tabItem { Label("Home", systemImage: "house.fill") }
                 .tag(0)
-
+            
             SavedArticleScreen()
                 .tabItem { Label("Saved", systemImage: "bookmark") }
                 .tag(1)
-
-            UserProfileScreen()
+            
+            UserProfileScreen(onSignOut: onSignOut) 
                 .tabItem { Label("Profile", systemImage: "person") }
                 .tag(2)
         }

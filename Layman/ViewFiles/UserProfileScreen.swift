@@ -10,6 +10,7 @@ import SwiftUI
 struct UserProfileScreen: View {
 
     @EnvironmentObject var authVM: AuthViewModel
+    var onSignOut: (() -> Void)? // <- add this
 
     var body: some View {
         ZStack {
@@ -44,17 +45,6 @@ struct UserProfileScreen: View {
                             .font(.system(size: 42))
                             .foregroundColor(Color.accentColor.opacity(0.6))
                     )
-
-                // Edit badge
-//                Circle()
-//                    .fill(Color.accentColor)
-//                    .frame(width: 26, height: 26)
-//                    .overlay(
-//                        Image(systemName: "pencil")
-//                            .font(.system(size: 11, weight: .bold))
-//                            .foregroundColor(.white)
-//                    )
-//                    .offset(x: 2, y: 2)
             }
 
             // Name
@@ -117,6 +107,7 @@ struct UserProfileScreen: View {
         Button(action: {
             Task {
                 await authVM.logout()
+                onSignOut?()
             }
         }) {
             HStack(spacing: 8) {

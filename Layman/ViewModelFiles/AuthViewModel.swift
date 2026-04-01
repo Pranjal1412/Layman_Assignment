@@ -17,7 +17,7 @@ class AuthViewModel: ObservableObject {
     @Published var email: String = ""
     @Published var password: String = ""
     @Published var confirmPassword: String = ""
-    @Published var isLoading = false   
+    @Published var isLoading = false
     
     @Published var errorMessage: String?
     @Published var isAuthenticated: Bool = false
@@ -140,17 +140,14 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    func checkSession() async {
-        do {
-            let session = try await SupabaseManager.shared.client.auth.session
-            await MainActor.run {
-                isAuthenticated = !session.accessToken.isEmpty
-            }
-        } catch {
-            await MainActor.run {
-                isAuthenticated = false
-                errorMessage = error.localizedDescription
-            }
+    func checkSession() {
+        if let session = SupabaseManager.shared.client.auth.currentSession,
+           let userEmail = session.user.email {  
+            email = userEmail
+            isAuthenticated = true
+        } else {
+            email = ""
+            isAuthenticated = false
         }
     }
 }

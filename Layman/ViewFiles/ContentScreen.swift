@@ -113,16 +113,18 @@ struct ContentScreenView: View {
 
                     // Content Cards
                     VStack(spacing: 18) {
+                        let snippets = getSnippets(from: article.description)
+
                         TabView(selection: $currentPage) {
-                            ForEach(0..<3) { index in
-                                VStack(alignment: .leading, spacing: 14) {
-                                    Text(getSnippet(for: index))
+                            ForEach(0..<snippets.count, id: \.self) { index in
+                                VStack(alignment: .leading) {
+                                    Text(snippets[index])
                                         .font(.system(size: 18, weight: .medium))
                                         .lineSpacing(4)
                                         .foregroundColor(primaryTextColor.opacity(0.9))
                                     Spacer()
                                 }
-                                .padding(25)
+                                .padding(20)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 190)
                                 .background(Color.white)
@@ -136,9 +138,10 @@ struct ContentScreenView: View {
                         .onChange(of: currentPage) { oldValue, newValue in
                             hapticFeedback.impactOccurred()
                         }
+
                         // Dots
                         HStack(spacing: 6) {
-                            ForEach(0..<3) { index in
+                            ForEach(0..<snippets.count) { index in
                                 Capsule()
                                     .fill(index == currentPage ? accentColor : primaryTextColor.opacity(0.2))
                                     .frame(width: index == currentPage ? 18 : 6, height: 6)
@@ -178,10 +181,34 @@ struct ContentScreenView: View {
         }
     }
     
-    private func getSnippet(for index: Int) -> String {
-        return "xAI recently raised $6 billion, is now raising another $4.3 billion, and plans to compete with OpenAI, Google, and others by training AI that anyone can use and build on."
-    }
+    private func getSnippets(from description: String?, maxCards: Int = 3) -> [String] {
+        guard let description = description, !description.isEmpty else {
+            return ["No description available."]
+        }
 
+        // Split into sentences
+        let sentences = description
+            .components(separatedBy: CharacterSet(charactersIn: ".!?"))
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        guard !sentences.isEmpty else { return [description] }
+
+        let numberOfCards = min(maxCards, sentences.count)
+        var result: [String] = []
+
+        let partSize = max(1, sentences.count / numberOfCards)
+
+        for i in 0..<numberOfCards {
+            let startIndex = i * partSize
+            let endIndex = (i == numberOfCards - 1) ? sentences.count : min(startIndex + partSize, sentences.count)
+            let snippetSentences = sentences[startIndex..<endIndex]
+            result.append(snippetSentences.joined(separator: ". ") + (endIndex != sentences.count ? "." : ""))
+        }
+
+        return result
+    }
+    
     private func shareArticle() {
         guard let url = URL(string: article.link) else { return }
         let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)

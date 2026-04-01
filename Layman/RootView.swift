@@ -14,7 +14,10 @@ struct RootView: View {
     var body: some View {
         Group {
             if authVM.isAuthenticated {
-                TabbarView()
+                TabbarView(onSignOut: {
+                    withAnimation { showWelcome = true } // <- now TabbarView can call this
+                })
+                .environmentObject(authVM)
             } else if showWelcome {
                 WelcomeScreen {
                     withAnimation { showWelcome = false }
