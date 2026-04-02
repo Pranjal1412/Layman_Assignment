@@ -29,7 +29,6 @@ struct AskLaymanModalView: View {
     let apiKey = ProcessInfo.processInfo.environment["Layman_API_Key"]
     
     private let brandOrange   = Color(hex: "#C0522A")
-    private let sheetBg       = Color(hex: "#F7F3EE")   // warm cream
     private let bubbleBg      = Color(hex: "#EDE5D8")   // AI bubble
     private let userBubbleBg  = Color(hex: "#E8DDD0")   // user bubble
     private let inputBarBg    = Color(hex: "#EFEBE4")   // input row bg
@@ -52,7 +51,7 @@ struct AskLaymanModalView: View {
                         }
                         
                         if isTyping {
-                            TypingIndicatorView(brandOrange: brandOrange,
+                            TypingIndicatorView(brandOrange: Color.accent,
                                                bubbleBg: bubbleBg)
                         }
                         
@@ -105,7 +104,7 @@ struct AskLaymanModalView: View {
                         .background(
                             inputText.trimmingCharacters(in: .whitespaces).isEmpty
                             ? Color(hex: "#C0522A").opacity(0.4)
-                            : brandOrange
+                            : Color.accent
                         )
                         .clipShape(Circle())
                 }
@@ -120,7 +119,7 @@ struct AskLaymanModalView: View {
             )
         }
         // ✅ Always light/warm — ignores device dark mode for this sheet
-        .background(sheetBg)
+        .background(Color.viewBackground)
         .preferredColorScheme(.light)
         .onAppear { loadSuggestions() }
     }
@@ -264,7 +263,7 @@ struct ChatBubbleView: View {
                 // Layman avatar
                 ZStack {
                     Circle()
-                        .fill(brandOrange)
+                        .fill(.accent)
                         .frame(width: 30, height: 30)
                     Image(systemName: "sparkles")
                         .foregroundColor(.white)
@@ -294,7 +293,7 @@ struct TypingIndicatorView: View {
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
             ZStack {
-                Circle().fill(brandOrange).frame(width: 30, height: 30)
+                Circle().fill(.accent).frame(width: 30, height: 30)
                 Image(systemName: "sparkles")
                     .foregroundColor(.white)
                     .font(.system(size: 12, weight: .bold))

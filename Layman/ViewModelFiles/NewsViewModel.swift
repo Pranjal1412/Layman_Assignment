@@ -14,10 +14,10 @@ class NewsViewModel: ObservableObject {
     @Published var featuredArticles: [NewsArticle] = []
     @Published var todaysPicks: [NewsArticle] = []
     
-    private let urlString = "https://newsdata.io/api/1/latest?apikey=pub_1cbc7f79b2904630be65e5789d729728&country=in,us&language=en&category=business,technology&prioritydomain=medium&image=1&removeduplicate=1&sort=pubdateasc&excludefield=source_id,source_url,source_icon,source_priority,video_url,pubdatetz,content,language,ai_tag,sentiment,sentiment_stats,ai_region,ai_org,duplicate,ai_summary,keywords,creator,country"
+    private let urlString = "https://newsdata.io/api/1/latest?apikey=pub_a3e4ccef886e4f91bb835c9732833b0a&country=in,us&language=en&category=business,technology&prioritydomain=medium&image=1&removeduplicate=1&sort=pubdateasc&excludefield=source_id,source_url,source_icon,source_priority,video_url,pubdatetz,content,language,ai_tag,sentiment,sentiment_stats,keywords,creator,ai_region,ai_org,duplicate,ai_summary,country"
+    
     
     func loadNews() {
-        print("loadNews called")
         
         Task {
             do {
@@ -48,10 +48,8 @@ class NewsViewModel: ObservableObject {
                     return true
                 }
                 
-                print("Total articles: \(decoded.results.count)")
                 print("Valid articles with images: \(validArticles.count)")
                 
-                // Assign filtered data
                 self.featuredArticles = Array(validArticles.prefix(3))
                 self.todaysPicks = Array(validArticles.dropFirst(3))
                 

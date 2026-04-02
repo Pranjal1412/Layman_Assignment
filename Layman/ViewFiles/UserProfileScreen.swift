@@ -83,7 +83,7 @@ struct UserProfileScreen: View {
                 )
 
                 Divider()
-                    .padding(.leading, 56)
+//                    .padding(.leading, 56)
                     .overlay(Color.primaryText.opacity(0.07))
 
                 ProfileDetailRow(
@@ -97,7 +97,7 @@ struct UserProfileScreen: View {
             .background(Color.white)
             .cornerRadius(16)
             .padding(.horizontal, 20)
-            .shadow(color: Color.primaryText.opacity(0.05), radius: 8, x: 0, y: 2)
+            .shadow(color: Color.accentColor.opacity(0.2), radius: 16, x: 0, y: 2)
         }
     }
 
