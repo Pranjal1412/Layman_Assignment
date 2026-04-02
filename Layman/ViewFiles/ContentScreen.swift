@@ -10,6 +10,8 @@ import Kingfisher
 import SafariServices
 
 struct ContentScreenView: View {
+    @EnvironmentObject var authVM: AuthViewModel
+
     @Environment(\.dismiss) var dismiss
     @State private var isSaved: Bool
     @State private var currentPage = 0
@@ -62,7 +64,9 @@ struct ContentScreenView: View {
                     Button(action: {
                         Task {
                             isSaved.toggle()
-
+                            await MainActor.run {
+                                authVM.updateStreak()
+                            }
                             if isSaved {
                                 await saveArticle(article)
                             }
@@ -80,7 +84,10 @@ struct ContentScreenView: View {
                     }
                     
                     //share button
-                    Button(action: { shareArticle() }) {
+                    Button(action: {
+                        shareArticle()
+                        authVM.updateStreak()
+                    }) {
                         Image(systemName: "square.and.arrow.up")
                     }
                 }

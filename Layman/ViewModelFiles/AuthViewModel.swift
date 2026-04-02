@@ -22,6 +22,10 @@ class AuthViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isAuthenticated: Bool = false
     
+    @Published var currentStreak: Int = 0
+    @Published var longestStreak: Int = 0
+    @Published var lastActiveDate: Date?
+    
     var displayName: String {
         email.isEmpty ? "User" : email.components(separatedBy: "@").first ?? "User"
     }
@@ -30,6 +34,10 @@ class AuthViewModel: ObservableObject {
         if email.isEmpty || password.isEmpty { return false }
         if mode == .signup { return password == confirmPassword && password.count >= 6 }
         return true
+    }
+    
+    init() {
+        loadStreak()
     }
     
     @MainActor
@@ -132,6 +140,7 @@ class AuthViewModel: ObservableObject {
     }
     
     func logout() async {
+        
         do {
             try await SupabaseManager.shared.client.auth.signOut()
             await MainActor.run { isAuthenticated = false }
@@ -149,5 +158,49 @@ class AuthViewModel: ObservableObject {
             email = ""
             isAuthenticated = false
         }
+    }
+    
+    func updateStreak() {
+        let today = Calendar.current.startOfDay(for: Date())
+        
+        guard let lastDate = lastActiveDate else {
+            // First time user
+            currentStreak = 1
+            longestStreak = max(longestStreak, currentStreak)
+            lastActiveDate = today
+            saveStreak()
+            return
+        }
+        
+        let lastDay = Calendar.current.startOfDay(for: lastDate)
+        let diff = Calendar.current.dateComponents([.day], from: lastDay, to: today).day ?? 0
+        
+        if diff == 0 {
+            // Same day → do nothing
+            return
+        } else if diff == 1 {
+            // Consecutive day → increase streak
+            currentStreak += 1
+        } else {
+            // Missed day → reset streak
+            currentStreak = 1
+        }
+        
+        longestStreak = max(longestStreak, currentStreak)
+        lastActiveDate = today
+        
+        saveStreak()
+    }
+    
+    private func saveStreak() {
+        UserDefaults.standard.set(currentStreak, forKey: "currentStreak")
+        UserDefaults.standard.set(longestStreak, forKey: "longestStreak")
+        UserDefaults.standard.set(lastActiveDate, forKey: "lastActiveDate")
+    }
+    
+    func loadStreak() {
+        currentStreak = UserDefaults.standard.integer(forKey: "currentStreak")
+        longestStreak = UserDefaults.standard.integer(forKey: "longestStreak")
+        lastActiveDate = UserDefaults.standard.object(forKey: "lastActiveDate") as? Date
     }
 }

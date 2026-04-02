@@ -22,6 +22,7 @@ struct UserProfileScreen: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 24) {
                         profileHeader
+                        statsSection
                         accountDetails
                         signOutButton
                     }
@@ -58,8 +59,21 @@ struct UserProfileScreen: View {
                 .foregroundColor(Color.primaryText.opacity(0.5))
         }
     }
-
-    // MARK: - Account Details
+    private var statsSection: some View {
+        HStack(spacing: 16) {
+            
+            StatCardView(
+                value: "\(authVM.currentStreak)",
+                label: "CURRENT STREAK"
+            )
+            
+            StatCardView(
+                value: "\(authVM.longestStreak)",
+                label: "LONGEST STREAK"
+            )
+        }
+        .padding(.horizontal, 20)
+    }
 
     private var accountDetails: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -169,7 +183,29 @@ struct ProfileDetailRow: View {
     }
 }
 
-// MARK: - Preview
+struct StatCardView: View {
+    let value: String
+    let label: String
+    
+    var body: some View {
+        VStack(spacing: 6) {
+            
+            Text(value)
+                .font(.system(size: 22, weight: .bold))
+                .foregroundColor(Color.accentColor)
+            
+            Text(label)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(Color.primaryText.opacity(0.5))
+                .kerning(1.1)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 80)
+        .background(Color.cellBackground)
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.05), radius: 6, y: 2)
+    }
+}
 
 #Preview {
     UserProfileScreen()
