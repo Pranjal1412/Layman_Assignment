@@ -17,6 +17,7 @@ struct ContentScreenView: View {
     @State private var currentPage = 0
     @State private var showOriginalArticle = false
     @State private var showAskLayman = false
+    @State private var animateContent = false
 
     var savedArticlesVM: SavedArticlesViewModel?  
     private let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
@@ -101,6 +102,8 @@ struct ContentScreenView: View {
                         .lineLimit(4)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 20)
+                        .opacity(animateContent ? 1 : 0)
+                        .offset(y: animateContent ? 0 : 18)
 
                     // Image
                     if let urlString = article.image_url, let url = URL(string: urlString) {
@@ -111,6 +114,8 @@ struct ContentScreenView: View {
                             .frame(maxWidth: UIScreen.main.bounds.width - 40)
                             .clipShape(RoundedRectangle(cornerRadius: 24))
                             .clipped()
+                            .opacity(animateContent ? 1 : 0)
+                            .scaleEffect(animateContent ? 1 : 0.96)
                     }
 
                     // Content Cards
@@ -152,6 +157,8 @@ struct ContentScreenView: View {
                         }
                     }
                     .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 6)
+                    .opacity(animateContent ? 1 : 0)
+                    .offset(y: animateContent ? 0 : 26)
                 }
                 .padding(.bottom, 20) // Some padding before the fixed button area
             }
@@ -176,6 +183,8 @@ struct ContentScreenView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
                 .padding(.bottom, 10)
+                .opacity(animateContent ? 1 : 0)
+                .offset(y: animateContent ? 0 : 24)
                 .sheet(isPresented: $showAskLayman) {
                     AskLaymanModalView(articleContext: article.description ?? "")
                         .presentationDetents([.medium, .large])
@@ -188,6 +197,12 @@ struct ContentScreenView: View {
         .navigationBarBackButtonHidden(true)
         .sheet(isPresented: $showOriginalArticle) {
             OriginalArticlePopup(article: article)
+        }
+        .onAppear {
+            animateContent = false
+            withAnimation(.easeOut(duration: 0.55)) {
+                animateContent = true
+            }
         }
     }
 

@@ -15,6 +15,7 @@ struct WelcomeScreen: View {
     
     @StateObject private var viewModel = WelcomeViewModel()
     @State private var navigate = false
+    @State private var animateIn = false
     
     var titleText: AttributedString {
         var text = AttributedString("Business, tech & startups\nmade simple")
@@ -43,6 +44,8 @@ struct WelcomeScreen: View {
                         .font(.system(size: 55, weight: .bold))
                         .foregroundColor(Color("PrimaryTextColor"))
                         .padding(.top, 60)
+                        .opacity(animateIn ? 1 : 0)
+                        .offset(y: animateIn ? 0 : -24)
                     
                     Spacer()
                     
@@ -52,12 +55,17 @@ struct WelcomeScreen: View {
                         .lineSpacing(4)
                         .frame(maxWidth: .infinity)
                         .padding(.horizontal, 15)
+                        .opacity(animateIn ? 1 : 0)
+                        .offset(y: animateIn ? 0 : 18)
                     
                     Spacer()
                     
                     swipeButton
+                        .opacity(animateIn ? 1 : 0)
+                        .offset(y: animateIn ? 0 : 28)
                 }
                 .padding(.bottom, 40)
+                .animation(.easeOut(duration: 0.6), value: animateIn)
                 
             }
             .navigationDestination(isPresented: $navigate) {
@@ -66,12 +74,18 @@ struct WelcomeScreen: View {
             .onChange(of: viewModel.isCompleted) { _, newValue in
                 if newValue {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                        navigate = true
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            navigate = true
+                        }
                     }
                 }
             }
             .onAppear {
                 viewModel.resetState()
+                animateIn = false
+                withAnimation(.easeOut(duration: 0.7)) {
+                    animateIn = true
+                }
             }
         }
     }

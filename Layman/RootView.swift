@@ -18,30 +18,38 @@ struct RootView: View {
                     .progressViewStyle(CircularProgressViewStyle())
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(.accent)
-                    .transition(.opacity)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
             } else if authVM.isAuthenticated {
                 TabbarView(onSignOut: {
                     Task {
                         await authVM.logout()
-                        withAnimation {
+                        withAnimation(.easeInOut(duration: 0.35)) {
                             isCheckingSession = false
                         }
                     }
                 })
                 .environmentObject(authVM)
-                .transition(.opacity)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .opacity
+                ))
             } else {
                 WelcomeScreen {
                     authVM.isAuthenticated = false
                 }
-                .transition(.opacity)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .leading).combined(with: .opacity),
+                    removal: .opacity
+                ))
             }
         }
-        .animation(.easeInOut, value: isCheckingSession)
-        .animation(.easeInOut, value: authVM.isAuthenticated)
+        .animation(.easeInOut(duration: 0.35), value: isCheckingSession)
+        .animation(.easeInOut(duration: 0.35), value: authVM.isAuthenticated)
         .task {
             await authVM.checkSession()
-            isCheckingSession = false
+            withAnimation(.easeInOut(duration: 0.35)) {
+                isCheckingSession = false
+            }
         }
     }
 }

@@ -14,6 +14,7 @@ struct AuthScreen: View {
     @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
     @State private var showPassword = false
     @State private var showConfirmPassword = false
+    @State private var animateCardIn = false
 
     init() {
         UISegmentedControl.appearance().selectedSegmentTintColor = UIColor.accent
@@ -111,6 +112,8 @@ struct AuthScreen: View {
                         .cornerRadius(24)
                         .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 6)
                         .padding(.horizontal, 20)
+                        .opacity(animateCardIn ? 1 : 0)
+                        .offset(y: animateCardIn ? 0 : 36)
                         .animation(.easeInOut(duration: 0.6), value: viewModel.mode)
 
                         Spacer()
@@ -129,6 +132,14 @@ struct AuthScreen: View {
                         .tint(Color("AccentColor"))
                         .cornerRadius(12)
                         .shadow(radius: 10)
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                }
+            }
+            .animation(.easeInOut(duration: 0.4), value: viewModel.isLoading)
+            .onAppear {
+                animateCardIn = false
+                withAnimation(.easeOut(duration: 0.65)) {
+                    animateCardIn = true
                 }
             }
         }

@@ -11,6 +11,7 @@ import Kingfisher
 struct ArticleScreen: View {
     
     @StateObject private var viewModel = NewsViewModel()
+    @State private var animateContent = false
     
     var body: some View {
         NavigationStack {
@@ -22,13 +23,21 @@ struct ArticleScreen: View {
                     VStack(spacing: 20) {
 
                         FeaturedCarousel(articles: viewModel.featuredArticles)
+                            .opacity(animateContent ? 1 : 0)
+                            .offset(y: animateContent ? 0 : 24)
                         TodaysPicksSection(articles: viewModel.todaysPicks)
+                            .opacity(animateContent ? 1 : 0)
+                            .offset(y: animateContent ? 0 : 32)
                     }
                     .padding(.bottom, 24)
                 }
             }
             .background(Color.viewBackground)
             .onAppear {
+                animateContent = false
+                withAnimation(.easeOut(duration: 0.6)) {
+                    animateContent = true
+                }
                 if viewModel.featuredArticles.isEmpty {
                     viewModel.loadNews()
                 }
@@ -173,6 +182,13 @@ struct FeaturedArticleCard: View {
 
 struct TodaysPicksSection: View {
     let articles: [NewsArticle]
+    
+    private var displayedArticles: [NewsArticle] {
+        showAll ? articles : Array(articles.prefix(3))
+    }
+    
+    @State private var animateRows = false
+    @State private var showAll = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -185,29 +201,47 @@ struct TodaysPicksSection: View {
                 Spacer()
                 
                 Button(action: {
-                    print("View All tapped")
+                    withAnimation(.easeInOut(duration: 0.4)) {
+                        showAll.toggle()
+                    }
                 }) {
-                    Text("View All")
+                    Text(showAll ? "Show Less" : "View All")
                         .underline()
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(Color.accent)
                 }
-
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 12)
 
             // Article List
             VStack(spacing: 8) {
-                ForEach(articles) { article in
+                ForEach(Array(displayedArticles.enumerated()), id: \.element.id) { index, article in
                     NavigationLink(destination: ContentScreenView(article: article)) {
                         ArticleRow(article: article)
                     }
                     .buttonStyle(PlainButtonStyle())
+                    .opacity(animateRows ? 1 : 0)
+                    .offset(y: animateRows ? 0 : 22)
+                    .animation(.easeOut(duration: 0.4).delay(Double(index) * 0.05), value: animateRows)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .bottom).combined(with: .opacity),
+                        removal: .opacity
+                    ))
                 }
             }
             .background(Color.viewBackground)
             .cornerRadius(16)
+        }
+        .onAppear {
+            animateRows = true
+        }
+        .onChange(of: articles.count) { _, newValue in
+            guard newValue > 0 else { return }
+            animateRows = false
+            withAnimation(.easeOut(duration: 0.45)) {
+                animateRows = true
+            }
         }
     }
 }
@@ -236,8 +270,8 @@ struct ArticleRow: View {
                         .foregroundColor(.gray.opacity(0.6))
                 }
             }
-            .frame(width: 64, height: 64)
-            .clipShape(RoundedRectangle(cornerRadius: 23))
+            .frame(width: 80, height: 80)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
 
             // Headline
             Text(article.title)
@@ -250,7 +284,7 @@ struct ArticleRow: View {
         }
         .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: 23)
+            RoundedRectangle(cornerRadius: 20)
                 .fill(Color.cellBackground)
         )
         .padding(.horizontal, 16)

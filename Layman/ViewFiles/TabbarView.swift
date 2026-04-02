@@ -26,5 +26,6 @@ struct TabbarView: View {
                 .tag(2)
         }
         .accentColor(Color.accent)
+        .animation(.easeInOut(duration: 0.25), value: selectedTab)
     }
 }

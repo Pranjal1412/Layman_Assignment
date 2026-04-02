@@ -11,6 +11,7 @@ struct UserProfileScreen: View {
 
     @EnvironmentObject var authVM: AuthViewModel
     var onSignOut: (() -> Void)? // <- add this
+    @State private var animateContent = false
 
     var body: some View {
         ZStack {
@@ -22,14 +23,28 @@ struct UserProfileScreen: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 24) {
                         profileHeader
+                            .opacity(animateContent ? 1 : 0)
+                            .offset(y: animateContent ? 0 : 18)
                         statsSection
+                            .opacity(animateContent ? 1 : 0)
+                            .offset(y: animateContent ? 0 : 24)
                         accountDetails
+                            .opacity(animateContent ? 1 : 0)
+                            .offset(y: animateContent ? 0 : 30)
                         signOutButton
+                            .opacity(animateContent ? 1 : 0)
+                            .offset(y: animateContent ? 0 : 36)
                     }
                     .padding(.top, 28)
                     .padding(.bottom, 40)
                 }
                 .background(Color.viewBackground)
+            }
+        }
+        .onAppear {
+            animateContent = false
+            withAnimation(.easeOut(duration: 0.55)) {
+                animateContent = true
             }
         }
     }
@@ -58,6 +73,7 @@ struct UserProfileScreen: View {
                 .font(.system(size: 14, weight: .regular))
                 .foregroundColor(Color.primaryText.opacity(0.5))
         }
+        .animation(.easeOut(duration: 0.4), value: animateContent)
     }
     private var statsSection: some View {
         HStack(spacing: 16) {
@@ -73,6 +89,7 @@ struct UserProfileScreen: View {
             )
         }
         .padding(.horizontal, 20)
+        .animation(.easeOut(duration: 0.45), value: animateContent)
     }
 
     private var accountDetails: some View {
@@ -113,6 +130,7 @@ struct UserProfileScreen: View {
             .padding(.horizontal, 20)
             .shadow(color: Color.accentColor.opacity(0.2), radius: 16, x: 0, y: 2)
         }
+        .animation(.easeOut(duration: 0.5), value: animateContent)
     }
 
     // MARK: - Sign Out Button
@@ -132,7 +150,6 @@ struct UserProfileScreen: View {
             .foregroundColor(Color.accentColor)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
-            .background(Color.cellBackground)
             .cornerRadius(26)
             .overlay(
                 RoundedRectangle(cornerRadius: 26)
@@ -140,6 +157,9 @@ struct UserProfileScreen: View {
             )
             .padding(.horizontal, 20)
         }
+        .buttonStyle(.plain)
+        .scaleEffect(animateContent ? 1 : 0.96)
+        .animation(.easeOut(duration: 0.55), value: animateContent)
     }
 }
 
