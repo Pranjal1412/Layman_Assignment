@@ -26,7 +26,7 @@ struct AskLaymanModalView: View {
     @State private var suggestionsLoaded = false
     @FocusState private var inputFocused: Bool
     
-    let apiKey = ProcessInfo.processInfo.environment["Layman_API_Key"] ?? ""
+    let apiKey = ProcessInfo.processInfo.environment["Layman_API_Key"]
     
     private let brandOrange   = Color(hex: "#C0522A")
     private let sheetBg       = Color(hex: "#F7F3EE")   // warm cream
@@ -37,7 +37,6 @@ struct AskLaymanModalView: View {
     var body: some View {
         VStack(spacing: 0) {
             
-            // ── Chat messages ──────────────────────────────
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
@@ -140,6 +139,8 @@ struct AskLaymanModalView: View {
         fetchLaymanResponse(for: trimmed)
     }
     
+    // MARK: - Send Message Response
+
     private func fetchLaymanResponse(for question: String) {
         let prompt = """
         You are Layman, a friendly AI assistant that explains news articles in plain English. \
@@ -147,13 +148,15 @@ struct AskLaymanModalView: View {
         Never use jargon. The article context is: \(articleContext). \
         User question: \(question). Do NOT use markdown or bullet points.
         """
+
         Task {
             do {
                 let url = URL(string: "https://api.groq.com/openai/v1/chat/completions")!
                 var request = URLRequest(url: url)
                 request.httpMethod = "POST"
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+                request.setValue("Bearer \(apiKey ?? "")", forHTTPHeaderField: "Authorization")
+
                 let body: [String: Any] = [
                     "model": "llama-3.1-8b-instant",
                     "messages": [["role": "user", "content": prompt]],
@@ -161,7 +164,9 @@ struct AskLaymanModalView: View {
                     "temperature": 0.3
                 ]
                 request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
                 let (data, _) = try await URLSession.shared.data(for: request)
+                
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let choices = json["choices"] as? [[String: Any]],
                    let message = choices.first?["message"] as? [String: Any],
@@ -169,9 +174,7 @@ struct AskLaymanModalView: View {
                     await MainActor.run {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             isTyping = false
-                            messages.append(ChatMessage(
-                                text: content.trimmingCharacters(in: .whitespacesAndNewlines),
-                                isUser: false))
+                            messages.append(ChatMessage(text: content.trimmingCharacters(in: .whitespacesAndNewlines), isUser: false))
                         }
                     }
                 } else {
@@ -179,23 +182,26 @@ struct AskLaymanModalView: View {
                 }
             } catch {
                 await MainActor.run { isTyping = false }
+                print("Error fetching Layman response:", error)
             }
         }
     }
-    
+
     private func loadSuggestions() {
         let prompt = """
         You are Layman. Given this article context: \(articleContext), \
         generate exactly 3 short question suggestions a curious reader might ask. \
         Return ONLY a JSON array of 3 strings, nothing else. Example: ["Q1?","Q2?","Q3?"]
         """
+
         Task {
             do {
                 let url = URL(string: "https://api.groq.com/openai/v1/chat/completions")!
                 var request = URLRequest(url: url)
                 request.httpMethod = "POST"
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+                request.setValue("Bearer \(apiKey ?? "")", forHTTPHeaderField: "Authorization")
+
                 let body: [String: Any] = [
                     "model": "llama-3.1-8b-instant",
                     "messages": [["role": "user", "content": prompt]],
@@ -203,7 +209,9 @@ struct AskLaymanModalView: View {
                     "temperature": 0.3
                 ]
                 request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
                 let (data, _) = try await URLSession.shared.data(for: request)
+
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let choices = json["choices"] as? [[String: Any]],
                    let message = choices.first?["message"] as? [String: Any],
@@ -219,10 +227,10 @@ struct AskLaymanModalView: View {
                 }
             } catch {
                 await MainActor.run { suggestionsLoaded = true }
+                print("Error loading suggestions:", error)
             }
         }
-    }
-}
+    }}
 
 // MARK: - Chat Bubble
 
