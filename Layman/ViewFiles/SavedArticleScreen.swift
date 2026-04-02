@@ -13,6 +13,16 @@ struct SavedArticleScreen: View {
     @StateObject private var laymanVM = NewsViewModel()
     @State private var animateList = false
     @State private var hasLoadedOnce = false
+    @State private var isSearching = false
+    @State private var searchText = ""
+    
+    private var searchResults: [NewsArticle] {
+        if searchText.isEmpty {
+            return viewModel.savedArticles
+        } else {
+            return viewModel.savedArticles.filter { $0.title.localizedCaseInsensitiveContains(searchText) || ($0.description?.localizedCaseInsensitiveContains(searchText) ?? false) }
+        }
+    }
     
     var body: some View {
         ZStack {
@@ -20,7 +30,7 @@ struct SavedArticleScreen: View {
                 VStack(spacing: 0) {
                     
                     // Top Nav
-                    Layman_NavBar(title: "Saved", hideSearch: false)
+                    Layman_NavBar(title: "Saved", hideSearch: false, searchText: $searchText, isSearching: $isSearching)
                     
                     // List
                     if viewModel.savedArticles.isEmpty {
@@ -36,10 +46,20 @@ struct SavedArticleScreen: View {
                             Spacer()
                         }
                         .transition(.opacity)
+                    } else if searchResults.isEmpty {
+                        VStack {
+                            Spacer()
+                            
+                            Text("No articles found")
+                                .font(.system(size: 20, weight: .light))
+                                .foregroundColor(.gray)
+                            
+                            Spacer()
+                        }
                     } else {
                         ScrollView {
                             VStack(spacing: 12) {
-                                ForEach(Array(viewModel.savedArticles.enumerated()), id: \.element.id) { index, article in
+                                ForEach(Array(searchResults.enumerated()), id: \.element.id) { index, article in
                                     NavigationLink(destination: ContentScreenView(article: article, isSaved: true, preloadedLaymanContent: laymanVM.laymanContent[article.id], savedArticlesVM: viewModel)) {
                                         ArticleRow(article: article, viewModel: laymanVM)
                                     }

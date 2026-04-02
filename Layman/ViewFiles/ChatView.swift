@@ -304,7 +304,7 @@ struct SuggestionsView: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 18)
                         .padding(.vertical, 11)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .center)
                         .background(brandOrange)
                         .clipShape(Capsule())
                 }

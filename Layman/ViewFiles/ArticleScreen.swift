@@ -12,22 +12,63 @@ struct ArticleScreen: View {
     
     @StateObject private var viewModel = NewsViewModel()
     @State private var animateContent = false
+    @State private var isSearching = false
+    @State private var searchText = ""
+    
+    private var searchResults: [NewsArticle] {
+        let combined = viewModel.featuredArticles + viewModel.todaysPicks
+        var unique: [NewsArticle] = []
+        var seen = Set<String>()
+        for article in combined {
+            if !seen.contains(article.id) {
+                seen.insert(article.id)
+                unique.append(article)
+            }
+        }
+        if searchText.isEmpty {
+            return unique
+        } else {
+            return unique.filter { $0.title.localizedCaseInsensitiveContains(searchText) || ($0.description?.localizedCaseInsensitiveContains(searchText) ?? false) }
+        }
+    }
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
 
-                Layman_NavBar(title: "Layman", hideSearch: false)
+                Layman_NavBar(title: "Layman", hideSearch: false, searchText: $searchText, isSearching: $isSearching)
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 20) {
-
-                        FeaturedCarousel(articles: viewModel.featuredArticles, viewModel: viewModel)
-                            .opacity(animateContent ? 1 : 0)
-                            .offset(y: animateContent ? 0 : 24)
-                        TodaysPicksSection(articles: viewModel.todaysPicks, viewModel: viewModel)
-                            .opacity(animateContent ? 1 : 0)
-                            .offset(y: animateContent ? 0 : 32)
+                        if isSearching {
+                            VStack(spacing: 8) {
+                                if searchResults.isEmpty && !searchText.isEmpty {
+                                    Text("No articles found")
+                                        .foregroundColor(.gray)
+                                        .padding(.top, 40)
+                                } else {
+                                    ForEach(searchResults, id: \.id) { article in
+                                        NavigationLink(
+                                            destination: ContentScreenView(
+                                                article: article,
+                                                preloadedLaymanContent: viewModel.laymanContent[article.id]
+                                            )
+                                        ) {
+                                            ArticleRow(article: article, viewModel: viewModel)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                    }
+                                }
+                            }
+                            .padding(.top, 12)
+                        } else {
+                            FeaturedCarousel(articles: viewModel.featuredArticles, viewModel: viewModel)
+                                .opacity(animateContent ? 1 : 0)
+                                .offset(y: animateContent ? 0 : 24)
+                            TodaysPicksSection(articles: viewModel.todaysPicks, viewModel: viewModel)
+                                .opacity(animateContent ? 1 : 0)
+                                .offset(y: animateContent ? 0 : 32)
+                        }
                     }
                     .padding(.bottom, 24)
                 }
@@ -49,31 +90,80 @@ struct ArticleScreen: View {
 struct Layman_NavBar: View {
     let title: String
     var hideSearch: Bool
+    
+    @Binding var searchText: String
+    @Binding var isSearching: Bool
+    @FocusState private var isSearchFocused: Bool
 
     var body: some View {
         HStack {
-            Text(title)
-                .font(.system(size: 30, weight: .bold))
-                .foregroundColor(Color.primaryText)
-
-            Spacer()
-
-            if hideSearch == false {
-                Button(action: {
-                    // Search action
-                }) {
+            if isSearching {
+                HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
-                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(.gray)
+                    
+                    TextField("Search...", text: $searchText)
+                        .focused($isSearchFocused)
                         .foregroundColor(Color.primaryText)
-                        .frame(width: 36, height: 36)
-                        .background(Color.cellBackground)
-                        .clipShape(Circle())
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
+                    
+                    if !searchText.isEmpty {
+                        Button(action: {
+                            searchText = ""
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.cellBackground)
+                .cornerRadius(10)
+                .transition(.opacity.combined(with: .move(edge: .trailing)))
+
+                Button("Cancel") {
+                    withAnimation {
+                        isSearching = false
+                        searchText = ""
+                        isSearchFocused = false
+                    }
+                }
+                .foregroundColor(Color.accent)
+                .font(.system(size: 16, weight: .medium))
+                .padding(.leading, 8)
+                
+            } else {
+                Text(title)
+                    .font(.system(size: 30, weight: .bold))
+                    .foregroundColor(Color.primaryText)
+                
+                Spacer()
+                
+                if !hideSearch {
+                    Button(action: {
+                        withAnimation {
+                            isSearching = true
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            isSearchFocused = true
+                        }
+                    }) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(Color.primaryText)
+                            .frame(width: 36, height: 36)
+                            .background(Color.cellBackground)
+                            .clipShape(Circle())
+                    }
                 }
             }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
         .background(Color.viewBackground)
+        .animation(.default, value: isSearching)
     }
 }
 

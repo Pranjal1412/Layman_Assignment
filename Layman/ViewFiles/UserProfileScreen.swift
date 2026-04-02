@@ -12,13 +12,16 @@ struct UserProfileScreen: View {
     @EnvironmentObject var authVM: AuthViewModel
     var onSignOut: (() -> Void)? // <- add this
     @State private var animateContent = false
+    @State private var isSearching = false
+    @State private var searchText = ""
+
 
     var body: some View {
         ZStack {
 
             VStack(spacing: 0) {
 
-                Layman_NavBar(title: "Profile", hideSearch: true)
+                Layman_NavBar(title: "Profile", hideSearch: true, searchText: $searchText, isSearching: $isSearching)
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 24) {
