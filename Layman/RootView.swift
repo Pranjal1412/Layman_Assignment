@@ -9,28 +9,35 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject var authVM: AuthViewModel
-    @State private var showWelcome = false
-    
+    @State private var isCheckingSession = true
+
     var body: some View {
-        Group {
-            if authVM.isAuthenticated {
+        ZStack {
+            if isCheckingSession {
+                ProgressView("Fetching Your News...")
+                    .progressViewStyle(CircularProgressViewStyle())
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(.accent)
+                    .transition(.opacity)
+            } else if authVM.isAuthenticated {
                 TabbarView(onSignOut: {
-                    withAnimation { showWelcome = true } // <- now TabbarView can call this
+                    withAnimation { isCheckingSession = true }
+                    Task { await authVM.logout() }
                 })
                 .environmentObject(authVM)
-            } else if showWelcome {
-                WelcomeScreen {
-                    withAnimation { showWelcome = false }
-                }
+                .transition(.opacity)
             } else {
-                AuthScreen()
+                WelcomeScreen {
+                    authVM.isAuthenticated = false
+                }
+                .transition(.opacity)
             }
         }
+        .animation(.easeInOut, value: isCheckingSession)
+        .animation(.easeInOut, value: authVM.isAuthenticated)
         .task {
             await authVM.checkSession()
-            if !authVM.isAuthenticated {
-                withAnimation { showWelcome = true }
-            }
+            isCheckingSession = false
         }
     }
 }
