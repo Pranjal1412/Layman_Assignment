@@ -91,7 +91,7 @@ struct FeaturedCarousel: View {
             TabView(selection: $currentPage) {
                 ForEach(Array(articles.enumerated()), id: \.offset) { index, article in
                     NavigationLink(destination: ContentScreenView(article: article)) {
-                        FeaturedArticleCard(article: article)
+                        FeaturedArticleCard(article: article, viewModel: viewModel)
                     }
                     .buttonStyle(PlainButtonStyle())
                     .padding(.horizontal, 8)
@@ -128,11 +128,11 @@ struct FeaturedCarousel: View {
 
 struct FeaturedArticleCard: View {
     let article: NewsArticle
+    @ObservedObject var viewModel: NewsViewModel   // ✅ ADD
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             GeometryReader { geo in
-                // Image layer
                 if let urlString = article.image_url, let url = URL(string: urlString) {
                     KFImage(url)
                         .resizable()
@@ -144,7 +144,6 @@ struct FeaturedArticleCard: View {
                         .fill(Color.accent.opacity(0.8))
                 }
                 
-                // Legibility Gradient (Solves the "White Photo" issue)
                 LinearGradient(
                     gradient: Gradient(colors: [.clear, .black.opacity(0.7)]),
                     startPoint: .top,
@@ -153,7 +152,6 @@ struct FeaturedArticleCard: View {
             }
 
             VStack(alignment: .leading, spacing: 12) {
-                // Logo/Category Box (Layman style)
                 Text(article.category.first?.uppercased() ?? "NEWS")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.white)
@@ -162,17 +160,24 @@ struct FeaturedArticleCard: View {
                     .background(Color.accent.opacity(0.2))
                     .cornerRadius(10)
                 
-                // Conversational Headline
-                Text(article.title)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
+                // ✅ UPDATED HEADLINE
+                Text(
+                    viewModel.laymanContent[article.id]?.headline ??
+                    (viewModel.laymanLoadingIds.contains(article.id) ? "Simplifying..." : article.title)
+                )
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.white)
+                .lineLimit(2)
             }
             .padding(20)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 24)) // Smoother corners
+        .clipShape(RoundedRectangle(cornerRadius: 24))
         .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
+        
+//        // ✅ TRIGGER FETCH
+//        .onAppear {
+//            viewModel.fetchLaymanContent(for: article)
+//        }
     }
 }
 
@@ -217,7 +222,7 @@ struct TodaysPicksSection: View {
             VStack(spacing: 8) {
                 ForEach(Array(displayedArticles.enumerated()), id: \.element.id) { index, article in
                     NavigationLink(destination: ContentScreenView(article: article)) {
-                        ArticleRow(article: article)
+                        ArticleRow(article: article, viewModel: viewModel)
                     }
                     .buttonStyle(PlainButtonStyle())
                     .opacity(animateRows ? 1 : 0)
@@ -247,23 +252,19 @@ struct TodaysPicksSection: View {
 
 struct ArticleRow: View {
     let article: NewsArticle
+    @ObservedObject var viewModel: NewsViewModel   // ✅ ADD
 
     var body: some View {
         HStack(spacing: 12) {
 
-            // Thumbnail
             ZStack {
                 if let urlString = article.image_url,
                    let url = URL(string: urlString) {
-                    
                     KFImage(url)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                }
-                else {
-                    // fallback to SF Symbol
+                } else {
                     Color.gray.opacity(0.15)
-
                     Image(systemName: "photo.fill")
                         .font(.system(size: 22))
                         .foregroundColor(.gray.opacity(0.6))
@@ -272,12 +273,14 @@ struct ArticleRow: View {
             .frame(width: 80, height: 80)
             .clipShape(RoundedRectangle(cornerRadius: 20))
 
-            // Headline
-            Text(article.title)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.primaryText)
-                .lineLimit(3)
-                .multilineTextAlignment(.leading)
+            // ✅ UPDATED HEADLINE
+            Text(
+                viewModel.laymanContent[article.id]?.headline ??
+                (viewModel.laymanLoadingIds.contains(article.id) ? "Simplifying..." : article.title)
+            )
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundColor(.primaryText)
+            .lineLimit(3)
 
             Spacer(minLength: 0)
         }
@@ -287,5 +290,10 @@ struct ArticleRow: View {
                 .fill(Color.cellBackground)
         )
         .padding(.horizontal, 16)
+        
+        // TRIGGER FETCH
+//        .onAppear {
+//            viewModel.fetchLaymanContent(for: article)
+//        }
     }
 }

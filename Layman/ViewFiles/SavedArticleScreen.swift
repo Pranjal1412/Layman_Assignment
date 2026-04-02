@@ -10,7 +10,9 @@ import SwiftUI
 struct SavedArticleScreen: View {
 
     @StateObject private var viewModel = SavedArticlesViewModel()
+    @StateObject private var laymanVM = NewsViewModel()
     @State private var animateList = false
+    @State private var hasLoadedOnce = false
     
     var body: some View {
         ZStack {
@@ -39,7 +41,7 @@ struct SavedArticleScreen: View {
                             VStack(spacing: 12) {
                                 ForEach(Array(viewModel.savedArticles.enumerated()), id: \.element.id) { index, article in
                                     NavigationLink(destination: ContentScreenView(article: article, isSaved: true, savedArticlesVM: viewModel)) {
-                                        ArticleRow(article: article)
+                                        ArticleRow(article: article, viewModel: laymanVM)
                                     }
                                     .buttonStyle(PlainButtonStyle())
                                     .opacity(animateList ? 1 : 0)
@@ -75,6 +77,34 @@ struct SavedArticleScreen: View {
             animateList = false
             Task {
                 await viewModel.fetch()
+                
+                // Batch simplify saved articles
+                let batch = Array(viewModel.savedArticles.prefix(6))
+
+                do {
+                    let results = try await laymanVM.fetchBatchLaymanContent(articles: batch)
+
+                    await MainActor.run {
+                        for (id, content) in results {
+                            laymanVM.laymanContent[id] = content
+                        }
+                    }
+
+                    // fallback for missing
+                    let missing = batch.filter { laymanVM.laymanContent[$0.id] == nil }
+
+                    for article in missing {
+                        laymanVM.fetchLaymanContent(for: article)
+                    }
+
+                } catch {
+                    print("Batch error, fallback to single:", error)
+
+                    for article in batch {
+                        laymanVM.fetchLaymanContent(for: article)
+                    }
+                }
+                
                 await MainActor.run {
                     withAnimation(.easeOut(duration: 0.45)) {
                         animateList = true
