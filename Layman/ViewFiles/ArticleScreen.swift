@@ -30,7 +30,7 @@ struct ArticleScreen: View {
             .background(Color.viewBackground)
             .onAppear {
                 if viewModel.featuredArticles.isEmpty {
-//                    viewModel.loadNews()
+                    viewModel.loadNews()
                 }
             }
         }
