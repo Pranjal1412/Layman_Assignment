@@ -22,10 +22,10 @@ struct ArticleScreen: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 20) {
 
-                        FeaturedCarousel(articles: viewModel.featuredArticles)
+                        FeaturedCarousel(articles: viewModel.featuredArticles, viewModel: viewModel)
                             .opacity(animateContent ? 1 : 0)
                             .offset(y: animateContent ? 0 : 24)
-                        TodaysPicksSection(articles: viewModel.todaysPicks)
+                        TodaysPicksSection(articles: viewModel.todaysPicks, viewModel: viewModel)
                             .opacity(animateContent ? 1 : 0)
                             .offset(y: animateContent ? 0 : 32)
                     }
@@ -45,8 +45,6 @@ struct ArticleScreen: View {
         }
     }
 }
-
-// MARK: - Navigation Bar
 
 struct Layman_NavBar: View {
     let title: String
@@ -83,7 +81,8 @@ struct Layman_NavBar: View {
 
 struct FeaturedCarousel: View {
     let articles: [NewsArticle]
-    // Default to index 1 (middle) if data exists
+    @ObservedObject var viewModel: NewsViewModel
+    
     @State private var currentPage = 1
     private let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
 
@@ -95,7 +94,6 @@ struct FeaturedCarousel: View {
                         FeaturedArticleCard(article: article)
                     }
                     .buttonStyle(PlainButtonStyle())
-                    // Padding here allows the "Peek" of the previous/next cards
                     .padding(.horizontal, 8)
                     .tag(index)
                 }
@@ -182,6 +180,7 @@ struct FeaturedArticleCard: View {
 
 struct TodaysPicksSection: View {
     let articles: [NewsArticle]
+    @ObservedObject var viewModel: NewsViewModel
     
     private var displayedArticles: [NewsArticle] {
         showAll ? articles : Array(articles.prefix(3))

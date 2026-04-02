@@ -13,7 +13,10 @@ class NewsViewModel: ObservableObject {
     
     @Published var featuredArticles: [NewsArticle] = []
     @Published var todaysPicks: [NewsArticle] = []
-    
+//    @Published var laymanContent: [UUID: LaymanContent] = [:]  // ADD THIS
+//    @Published var laymanLoadingIds: Set<UUID> = []            // ADD THIS (optional, for loading state)
+//    
+//    private let laymanService = LaymanTransformService()       // ADD THIS
     private let urlString = "https://newsdata.io/api/1/latest?apikey=pub_a3e4ccef886e4f91bb835c9732833b0a&country=in,us&language=en&category=business,technology&prioritydomain=medium&image=1&removeduplicate=1&sort=pubdateasc&excludefield=source_id,source_url,source_icon,source_priority,video_url,pubdatetz,content,language,ai_tag,sentiment,sentiment_stats,keywords,creator,ai_region,ai_org,duplicate,ai_summary,country"
     
     
@@ -58,4 +61,26 @@ class NewsViewModel: ObservableObject {
             }
         }
     }
+    
+//    func fetchLaymanContent(for article: NewsArticle) {
+//        guard laymanContent[article.id] == nil,
+//              !laymanLoadingIds.contains(article.id) else { return }
+//
+//        laymanLoadingIds.insert(article.id)
+//
+//        Task {
+//            do {
+//                let content = try await laymanService.fetchLaymanContent(
+//                    title: article.title,
+//                    description: article.description
+//                )
+//                laymanContent[article.id] = content
+//            } catch {
+//                print("Layman fetch error for \(article.title):", error)
+//            }
+//            laymanLoadingIds.remove(article.id)
+//        }
+//    }
+
+    
 }

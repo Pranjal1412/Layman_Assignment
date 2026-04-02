@@ -96,7 +96,7 @@ struct ContentScreenView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 24) {
                     // Headline
-                    Text(article.title)
+                    Text(viewModel.displayHeadline)
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(primaryTextColor)
                         .lineLimit(4)
@@ -125,6 +125,7 @@ struct ContentScreenView: View {
                         TabView(selection: $currentPage) {
                             ForEach(0..<snippets.count, id: \.self) { index in
                                 VStack(alignment: .leading) {
+                                    Spacer()
                                     Text(snippets[index])
                                         .font(.system(size: 18, weight: .medium))
                                         .lineSpacing(4)
@@ -203,6 +204,7 @@ struct ContentScreenView: View {
             withAnimation(.easeOut(duration: 0.55)) {
                 animateContent = true
             }
+            viewModel.fetchLaymanContent()  // ← ADD THIS
         }
     }
 
