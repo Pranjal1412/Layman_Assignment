@@ -26,12 +26,16 @@ struct AskLaymanModalView: View {
     @State private var suggestions: [String] = []
     @State private var suggestionsLoaded = false
     @FocusState private var inputFocused: Bool
+    @StateObject private var speechRecognizer = SpeechRecognizer()
+    
+    // NEW
+    @State private var isRecordingUI = false
+    private let haptic = UIImpactFeedbackGenerator(style: .medium)
     
     let apiKey = ProcessInfo.processInfo.environment["Layman_API_Key"]
     
     var body: some View {
         ZStack {
-            // Tap anywhere to dismiss keyboard
             Color.clear
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -74,7 +78,6 @@ struct AskLaymanModalView: View {
                         .padding(.top, 16)
                         .padding(.bottom, 12)
                     }
-                    // Dismiss keyboard on scroll
                     .gesture(
                         DragGesture().onChanged { _ in
                             inputFocused = false
@@ -89,8 +92,10 @@ struct AskLaymanModalView: View {
                     }
                 }
                 
-                // Input bar
+                // MARK: - Input Bar
+                
                 HStack(spacing: 10) {
+                    
                     TextField("Type your question...", text: $inputText)
                         .font(.system(size: 15))
                         .foregroundColor(.primary)
@@ -98,11 +103,27 @@ struct AskLaymanModalView: View {
                         .submitLabel(.send)
                         .onSubmit { sendMessage(inputText) }
                     
+                    // ✅ UPDATED MIC BUTTON
                     Button {
-                        // mic placeholder
+                        if speechRecognizer.isRecording {
+                            speechRecognizer.stopRecording()
+                            isRecordingUI = false
+                            
+                            if !speechRecognizer.transcript.isEmpty {
+                                sendMessage(speechRecognizer.transcript)
+                            }
+                        } else {
+                            haptic.impactOccurred()
+                            
+                            speechRecognizer.startRecording()
+                            isRecordingUI = true
+                            inputFocused = false
+                        }
                     } label: {
-                        Image(systemName: "mic")
-                            .foregroundColor(Color(hex: "#9E8E7E"))
+                        Image(systemName: isRecordingUI ? "mic.fill" : "mic")
+                            .foregroundColor(
+                                isRecordingUI ? .red : Color(hex: "#9E8E7E")
+                            )
                             .font(.system(size: 18))
                     }
                     
@@ -131,23 +152,28 @@ struct AskLaymanModalView: View {
                 )
                 .padding(.horizontal, 16)
             }
+            .onChange(of: speechRecognizer.transcript) { _, newValue in
+                inputText = newValue
+            }
+            .onAppear {
+                haptic.prepare()
+            }
         }
         .background(Color.viewBackground)
-        .onAppear { /* loadSuggestions() */ }
     }
 
-    private var brandOrange: Color {
-        Color.accent
-    }
-
+    // MARK: - Colors
+    
+    private var brandOrange: Color { Color.accent }
+    
     private var assistantBubbleBackground: Color {
         colorScheme == .dark ? Color(red: 0.22, green: 0.18, blue: 0.15) : Color(hex: "#E4D5C1")
     }
-
+    
     private var userBubbleBackground: Color {
         colorScheme == .dark ? Color(red: 0.18, green: 0.16, blue: 0.14) : Color(hex: "#F0E7DB")
     }
-
+    
     private var inputBarBackground: Color {
         colorScheme == .dark ? Color(red: 0.14, green: 0.12, blue: 0.10) : Color(hex: "#EFEBE4")
     }
@@ -157,17 +183,21 @@ struct AskLaymanModalView: View {
     private func sendMessage(_ text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
+        
         inputText = ""
+        speechRecognizer.transcript = ""
         inputFocused = false
+        
         withAnimation(.easeInOut(duration: 0.2)) {
             messages.append(ChatMessage(text: trimmed, isUser: true))
             isTyping = true
         }
+        
         fetchLaymanResponse(for: trimmed)
     }
     
-    // MARK: - Send Message Response
-
+    // MARK: - API Call
+    
     private func fetchLaymanResponse(for question: String) {
         let prompt = """
         You are Layman, a friendly AI assistant that explains news articles in plain English. \
@@ -190,16 +220,18 @@ struct AskLaymanModalView: View {
                     "max_tokens": 150,
                     "temperature": 0.3
                 ]
+
                 request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
                 let (data, _) = try await URLSession.shared.data(for: request)
-                
+
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let choices = json["choices"] as? [[String: Any]],
                    let message = choices.first?["message"] as? [String: Any],
                    let content = message["content"] as? String {
+                    
                     await MainActor.run {
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        withAnimation {
                             isTyping = false
                             messages.append(ChatMessage(text: content.trimmingCharacters(in: .whitespacesAndNewlines), isUser: false))
                         }
@@ -209,56 +241,11 @@ struct AskLaymanModalView: View {
                 }
             } catch {
                 await MainActor.run { isTyping = false }
-                print("Error fetching Layman response:", error)
+                print("Error:", error)
             }
         }
     }
-
-    private func loadSuggestions() {
-        let prompt = """
-        You are Layman. Given this article context: \(articleContext), \
-        generate exactly 3 short question suggestions a curious reader might ask. \
-        Return ONLY a JSON array of 3 strings, nothing else. Example: ["Q1?","Q2?","Q3?"]
-        """
-
-        Task {
-            do {
-                let url = URL(string: "https://api.groq.com/openai/v1/chat/completions")!
-                var request = URLRequest(url: url)
-                request.httpMethod = "POST"
-                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                request.setValue("Bearer \(apiKey ?? "")", forHTTPHeaderField: "Authorization")
-
-                let body: [String: Any] = [
-                    "model": "llama-3.1-8b-instant",
-                    "messages": [["role": "user", "content": prompt]],
-                    "max_tokens": 200,
-                    "temperature": 0.3
-                ]
-                request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-                let (data, _) = try await URLSession.shared.data(for: request)
-
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let choices = json["choices"] as? [[String: Any]],
-                   let message = choices.first?["message"] as? [String: Any],
-                   let content = message["content"] as? String,
-                   let jsonData = content.data(using: .utf8),
-                   let array = try? JSONDecoder().decode([String].self, from: jsonData) {
-                    await MainActor.run {
-                        withAnimation { suggestions = array }
-                        suggestionsLoaded = true
-                    }
-                } else {
-                    await MainActor.run { suggestionsLoaded = true }
-                }
-            } catch {
-                await MainActor.run { suggestionsLoaded = true }
-                print("Error loading suggestions:", error)
-            }
-        }
-    }}
-
+}
 // MARK: - Chat Bubble
 
 struct ChatBubbleView: View {
