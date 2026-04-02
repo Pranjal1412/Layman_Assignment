@@ -2,132 +2,355 @@
 //  ChatView.swift
 //  Layman
 //
-//  Created by Pranjal   on 01/04/26.
+//  Created by Pranjal on 01/04/26.
 //
 
 import SwiftUI
+import Combine
 
-struct AskLaymanView: View {
-    @State private var questionText: String = ""
+struct ChatMessage: Identifiable {
+    let id = UUID()
+    let text: String
+    let isUser: Bool
+}
+
+struct AskLaymanModalView: View {
+    let articleContext: String
+    
+    @State private var messages: [ChatMessage] = [
+        ChatMessage(text: "Hi, I'm Layman!\nWhat can I answer for you?", isUser: false)
+    ]
+    @State private var inputText: String = ""
+    @State private var isTyping: Bool = false
+    @State private var suggestions: [String] = []
+    @State private var suggestionsLoaded = false
+    @FocusState private var inputFocused: Bool
+    
+    let apiKey = ProcessInfo.processInfo.environment["Layman_API_Key"] ?? ""
+    
+    private let brandOrange   = Color(hex: "#C0522A")
+    private let sheetBg       = Color(hex: "#F7F3EE")   // warm cream
+    private let bubbleBg      = Color(hex: "#EDE5D8")   // AI bubble
+    private let userBubbleBg  = Color(hex: "#E8DDD0")   // user bubble
+    private let inputBarBg    = Color(hex: "#EFEBE4")   // input row bg
     
     var body: some View {
-        ZStack {
-            // Background Image (Blurred)
-            Image("article_bg") // Replace with your asset name
-                .resizable()
-                .scaledToFill()
-                .ignoresSafeArea()
-                .blur(radius: 10)
-                .overlay(Color.black.opacity(0.1))
+        VStack(spacing: 0) {
             
-            VStack(spacing: 0) {
-                Spacer()
-                
-                // Chat Container
-                VStack(alignment: .leading, spacing: 16) {
-                    // Pull indicator
-                    Capsule()
-                        .frame(width: 40, height: 4)
-                        .foregroundColor(.gray.opacity(0.3))
-                        .padding(.top, 8)
-                        .frame(maxWidth: .infinity)
-                    
-                    // Bot Initial Greeting
-                    ChatBubble(message: "Hi, I'm Layman!\nWhat can I answer for you?", isBot: true)
-                    
-                    // Question Suggestions Section
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Question Suggestions:")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.brown)
+            // ── Chat messages ──────────────────────────────
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
                         
-                        SuggestionButton(text: "Where did Elon Musk go to college?")
-                        SuggestionButton(text: "How much did it cost to make Grok?")
-                        SuggestionButton(text: "How is this different than ChatGPT?")
-                    }
-                    .padding(.bottom, 20)
-                    
-                    // Input Area
-                    HStack {
-                        TextField("Type your question...", text: $questionText)
-                            .padding(.leading, 12)
+                        ForEach(messages) { msg in
+                            ChatBubbleView(
+                                message: msg,
+                                brandOrange: brandOrange,
+                                bubbleBg: bubbleBg,
+                                userBubbleBg: userBubbleBg
+                            )
+                            .id(msg.id)
+                        }
                         
-                        Image(systemName: "mic.fill")
-                            .foregroundColor(.gray)
+                        if isTyping {
+                            TypingIndicatorView(brandOrange: brandOrange,
+                                               bubbleBg: bubbleBg)
+                        }
                         
-                        Button(action: {}) {
-                            Image(systemName: "paperplane.fill")
-                                .foregroundColor(.white)
-                                .padding(10)
-                                .background(Color.orange)
-                                .clipShape(Circle())
+                        if !suggestions.isEmpty && messages.count == 1 {
+                            SuggestionsView(
+                                suggestions: suggestions,
+                                brandOrange: brandOrange
+                            ) { suggestion in
+                                sendMessage(suggestion)
+                            }
                         }
                     }
-                    .padding(8)
-                    .background(Color.white.opacity(0.5))
-                    .cornerRadius(25)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
+                    .padding(.bottom, 12)
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 30)
-                .background(
-                    RoundedRectangle(cornerRadius: 30)
-                        .fill(Color(red: 0.98, green: 0.94, blue: 0.88)) // Cream background
-                )
-                .ignoresSafeArea(edges: .bottom)
+                .onChange(of: messages.count) { oldValue, newValue in
+                    if let last = messages.last {
+                        withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                    }
+                }
+            }
+            
+            // ── Input bar ──────────────────────────────────
+            HStack(spacing: 10) {
+                TextField("Type your question...", text: $inputText)
+                    .font(.system(size: 15))
+                    .foregroundColor(.primary)
+                    .focused($inputFocused)
+                    .submitLabel(.send)
+                    .onSubmit { sendMessage(inputText) }
+                
+                // Mic
+                Button {
+                    // mic placeholder
+                } label: {
+                    Image(systemName: "mic")
+                        .foregroundColor(Color(hex: "#9E8E7E"))
+                        .font(.system(size: 18))
+                }
+                
+                // Send
+                Button {
+                    sendMessage(inputText)
+                } label: {
+                    Image(systemName: "paperplane.fill")
+                        .foregroundColor(.white)
+                        .font(.system(size: 15))
+                        .frame(width: 36, height: 36)
+                        .background(
+                            inputText.trimmingCharacters(in: .whitespaces).isEmpty
+                            ? Color(hex: "#C0522A").opacity(0.4)
+                            : brandOrange
+                        )
+                        .clipShape(Circle())
+                }
+                .disabled(inputText.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 0)
+                    .fill(inputBarBg)
+                    .shadow(color: .black.opacity(0.06), radius: 4, y: -2)
+            )
+        }
+        // ✅ Always light/warm — ignores device dark mode for this sheet
+        .background(sheetBg)
+        .preferredColorScheme(.light)
+        .onAppear { loadSuggestions() }
+    }
+    
+    // MARK: - Send
+    
+    private func sendMessage(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        inputText = ""
+        inputFocused = false
+        withAnimation(.easeInOut(duration: 0.2)) {
+            messages.append(ChatMessage(text: trimmed, isUser: true))
+            isTyping = true
+        }
+        fetchLaymanResponse(for: trimmed)
+    }
+    
+    private func fetchLaymanResponse(for question: String) {
+        let prompt = """
+        You are Layman, a friendly AI assistant that explains news articles in plain English. \
+        Your responses must be exactly 1 to 2 sentences, simple and conversational. \
+        Never use jargon. The article context is: \(articleContext). \
+        User question: \(question). Do NOT use markdown or bullet points.
+        """
+        Task {
+            do {
+                let url = URL(string: "https://api.groq.com/openai/v1/chat/completions")!
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+                let body: [String: Any] = [
+                    "model": "llama-3.1-8b-instant",
+                    "messages": [["role": "user", "content": prompt]],
+                    "max_tokens": 150,
+                    "temperature": 0.3
+                ]
+                request.httpBody = try JSONSerialization.data(withJSONObject: body)
+                let (data, _) = try await URLSession.shared.data(for: request)
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let choices = json["choices"] as? [[String: Any]],
+                   let message = choices.first?["message"] as? [String: Any],
+                   let content = message["content"] as? String {
+                    await MainActor.run {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isTyping = false
+                            messages.append(ChatMessage(
+                                text: content.trimmingCharacters(in: .whitespacesAndNewlines),
+                                isUser: false))
+                        }
+                    }
+                } else {
+                    await MainActor.run { isTyping = false }
+                }
+            } catch {
+                await MainActor.run { isTyping = false }
+            }
+        }
+    }
+    
+    private func loadSuggestions() {
+        let prompt = """
+        You are Layman. Given this article context: \(articleContext), \
+        generate exactly 3 short question suggestions a curious reader might ask. \
+        Return ONLY a JSON array of 3 strings, nothing else. Example: ["Q1?","Q2?","Q3?"]
+        """
+        Task {
+            do {
+                let url = URL(string: "https://api.groq.com/openai/v1/chat/completions")!
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+                let body: [String: Any] = [
+                    "model": "llama-3.1-8b-instant",
+                    "messages": [["role": "user", "content": prompt]],
+                    "max_tokens": 200,
+                    "temperature": 0.3
+                ]
+                request.httpBody = try JSONSerialization.data(withJSONObject: body)
+                let (data, _) = try await URLSession.shared.data(for: request)
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let choices = json["choices"] as? [[String: Any]],
+                   let message = choices.first?["message"] as? [String: Any],
+                   let content = message["content"] as? String,
+                   let jsonData = content.data(using: .utf8),
+                   let array = try? JSONDecoder().decode([String].self, from: jsonData) {
+                    await MainActor.run {
+                        withAnimation { suggestions = array }
+                        suggestionsLoaded = true
+                    }
+                } else {
+                    await MainActor.run { suggestionsLoaded = true }
+                }
+            } catch {
+                await MainActor.run { suggestionsLoaded = true }
             }
         }
     }
 }
 
-// MARK: - Components
+// MARK: - Chat Bubble
 
-struct ChatBubble: View {
-    let message: String
-    let isBot: Bool
-    
+struct ChatBubbleView: View {
+    let message: ChatMessage
+    let brandOrange: Color
+    let bubbleBg: Color
+    let userBubbleBg: Color
+
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            if isBot {
+        HStack(alignment: .top, spacing: 8) {
+            if message.isUser {
+                Spacer(minLength: 40)
+                Text(message.text)
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(hex: "#3A2E26"))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(userBubbleBg)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                // User avatar
+                ZStack {
+                    Circle()
+                        .fill(Color(hex: "#D0C4B8"))
+                        .frame(width: 30, height: 30)
+                    Image(systemName: "person.fill")
+                        .foregroundColor(Color(hex: "#8A7A6E"))
+                        .font(.system(size: 14))
+                }
+            } else {
+                // Layman avatar
+                ZStack {
+                    Circle()
+                        .fill(brandOrange)
+                        .frame(width: 30, height: 30)
+                    Image(systemName: "sparkles")
+                        .foregroundColor(.white)
+                        .font(.system(size: 12, weight: .bold))
+                }
+                Text(message.text)
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(hex: "#3A2E26"))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(bubbleBg)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                Spacer(minLength: 40)
+            }
+        }
+    }
+}
+
+// MARK: - Typing Indicator
+
+struct TypingIndicatorView: View {
+    let brandOrange: Color
+    let bubbleBg: Color
+    @State private var phase = 0
+    let timer = Timer.publish(every: 0.4, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            ZStack {
+                Circle().fill(brandOrange).frame(width: 30, height: 30)
                 Image(systemName: "sparkles")
                     .foregroundColor(.white)
-                    .padding(8)
-                    .background(Color.brown.opacity(0.7))
-                    .clipShape(Circle())
+                    .font(.system(size: 12, weight: .bold))
             }
-            
-            Text(message)
-                .font(.system(size: 15))
-                .padding(12)
-                .background(isBot ? Color.brown.opacity(0.2) : Color.white)
-                .cornerRadius(12)
-            
-            if !isBot {
-                Spacer()
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .frame(width: 30, height: 30)
-                    .foregroundColor(.brown.opacity(0.5))
+            HStack(spacing: 5) {
+                ForEach(0..<3, id: \.self) { i in
+                    Circle()
+                        .fill(Color(hex: "#9E8E7E"))
+                        .frame(width: 7, height: 7)
+                        .scaleEffect(phase == i ? 1.4 : 1.0)
+                        .animation(.easeInOut(duration: 0.3), value: phase)
+                }
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 13)
+            .background(bubbleBg)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            Spacer()
         }
+        .onReceive(timer) { _ in phase = (phase + 1) % 3 }
     }
 }
 
-struct SuggestionButton: View {
-    let text: String
-    
+// MARK: - Suggestions
+
+struct SuggestionsView: View {
+    let suggestions: [String]
+    let brandOrange: Color
+    let onTap: (String) -> Void
+
     var body: some View {
-        Button(action: {}) {
-            Text(text)
-                .font(.system(size: 14))
-                .foregroundColor(.white)
-                .padding(.vertical, 10)
-                .padding(.horizontal, 16)
-                .background(Color.brown.opacity(0.8))
-                .cornerRadius(20)
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Question Suggestions:")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(Color(hex: "#9E8E7E"))
+                .padding(.leading, 2)
+            
+            ForEach(suggestions, id: \.self) { suggestion in
+                Button { onTap(suggestion) } label: {
+                    Text(suggestion)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 11)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(brandOrange)
+                        .clipShape(Capsule())
+                }
+            }
         }
+        .padding(.top, 4)
     }
 }
 
-#Preview {
-    AskLaymanView()
+// MARK: - Color Hex
+
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let r = Double((int >> 16) & 0xFF) / 255
+        let g = Double((int >> 8) & 0xFF) / 255
+        let b = Double(int & 0xFF) / 255
+        self.init(red: r, green: g, blue: b)
+    }
 }

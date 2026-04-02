@@ -14,7 +14,8 @@ struct ContentScreenView: View {
     @State private var isSaved: Bool
     @State private var currentPage = 0
     @State private var showOriginalArticle = false
-    
+    @State private var showAskLayman = false
+
     var savedArticlesVM: SavedArticlesViewModel?  
     private let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
     let article: NewsArticle
@@ -156,7 +157,10 @@ struct ContentScreenView: View {
 
             // 3. Fixed Bottom Button Area
             VStack {
-                Button(action: { hapticFeedback.impactOccurred() }) {
+                Button(action: {
+                    hapticFeedback.impactOccurred()
+                    showAskLayman = true  // Trigger the modal
+                }) {
                     HStack(spacing: 10) {
                         Image(systemName: "sparkles")
                         Text("Ask Layman")
@@ -170,9 +174,12 @@ struct ContentScreenView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
-                .padding(.bottom, 10) // Extra padding for safe area
+                .padding(.bottom, 10)
+                .sheet(isPresented: $showAskLayman) {
+                    AskLaymanModalView(articleContext: article.description ?? "")
+                }
             }
-            // Ensures button stays pinned and background fills the notch area
+            
         }
         .background(backgroundColor)
         .navigationBarBackButtonHidden(true)
