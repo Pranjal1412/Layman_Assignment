@@ -6,28 +6,32 @@
 //
 
 import Foundation
-import SwiftUI
 import Combine
 
-class SavedArticlesViewModel: ObservableObject {
+final class SavedArticlesViewModel: ObservableObject {
     @Published var savedArticles: [NewsArticle] = []
-    @Published var isLoading = false    // Loader state
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+
+    private let articleRepository: ArticleRepositoryProtocol
+
+    init(articleRepository: ArticleRepositoryProtocol = ArticleRepository()) {
+        self.articleRepository = articleRepository
+    }
 
     func fetch() async {
-        DispatchQueue.main.async { self.isLoading = true }  // Start loader
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
 
-        guard let articles = await fetchSavedArticles() else {
-            DispatchQueue.main.async { self.isLoading = false }  // Stop loader on failure
-            return
-        }
-
-        DispatchQueue.main.async {
-            self.savedArticles = articles
-            self.isLoading = false   // Stop loader on success
+        do {
+            savedArticles = try await articleRepository.fetchSavedArticles()
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 
-    func remove(_ article: NewsArticle) {
+    func removeFromList(_ article: NewsArticle) {
         savedArticles.removeAll { $0.id == article.id }
     }
 }

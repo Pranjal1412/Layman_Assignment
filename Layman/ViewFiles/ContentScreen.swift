@@ -13,7 +13,7 @@ struct ContentScreenView: View {
     @EnvironmentObject var authVM: AuthViewModel
 
     @Environment(\.dismiss) var dismiss
-    @State private var isSaved: Bool
+    @StateObject private var viewModel: ContentViewModel
     @State private var currentPage = 0
     @State private var showOriginalArticle = false
     @State private var showAskLayman = false
@@ -28,7 +28,7 @@ struct ContentScreenView: View {
 
     init(article: NewsArticle, isSaved: Bool = false, savedArticlesVM: SavedArticlesViewModel? = nil) {
         self.article = article
-        self._isSaved = State(initialValue: isSaved)
+        self._viewModel = StateObject(wrappedValue: ContentViewModel(article: article, isInitiallySaved: isSaved))
         self.savedArticlesVM = savedArticlesVM
     }
 
@@ -63,24 +63,18 @@ struct ContentScreenView: View {
                     //bookmark button
                     Button(action: {
                         Task {
-                            isSaved.toggle()
                             await MainActor.run {
                                 authVM.updateStreak()
                             }
-                            if isSaved {
-                                await saveArticle(article)
-                            }
-                            else {
-                                await deleteSavedArticle(article)
-                                DispatchQueue.main.async {
-                                    savedArticlesVM?.remove(article)
-                                }
+                            let didUpdate = await viewModel.toggleSaved()
+                            if didUpdate && !viewModel.isSaved {
+                                savedArticlesVM?.removeFromList(article)
                             }
                             hapticFeedback.impactOccurred()
                         }
                     }) {
-                        Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
-                            .foregroundColor(isSaved ? accentColor : primaryTextColor)
+                        Image(systemName: viewModel.isSaved ? "bookmark.fill" : "bookmark")
+                            .foregroundColor(viewModel.isSaved ? accentColor : primaryTextColor)
                     }
                     
                     //share button
@@ -121,7 +115,7 @@ struct ContentScreenView: View {
 
                     // Content Cards
                     VStack(spacing: 18) {
-                        let snippets = getSnippets(from: article.description)
+                        let snippets = viewModel.snippets
 
                         TabView(selection: $currentPage) {
                             ForEach(0..<snippets.count, id: \.self) { index in
@@ -149,7 +143,7 @@ struct ContentScreenView: View {
 
                         // Dots
                         HStack(spacing: 6) {
-                            ForEach(0..<snippets.count) { index in
+                            ForEach(Array(snippets.indices), id: \.self) { index in
                                 Capsule()
                                     .fill(index == currentPage ? accentColor : primaryTextColor.opacity(0.2))
                                     .frame(width: index == currentPage ? 18 : 6, height: 6)
@@ -196,35 +190,7 @@ struct ContentScreenView: View {
             OriginalArticlePopup(article: article)
         }
     }
-    
-    private func getSnippets(from description: String?, maxCards: Int = 3) -> [String] {
-        guard let description = description, !description.isEmpty else {
-            return ["No description available."]
-        }
 
-        // Split into sentences
-        let sentences = description
-            .components(separatedBy: CharacterSet(charactersIn: ".!?"))
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-
-        guard !sentences.isEmpty else { return [description] }
-
-        let numberOfCards = min(maxCards, sentences.count)
-        var result: [String] = []
-
-        let partSize = max(1, sentences.count / numberOfCards)
-
-        for i in 0..<numberOfCards {
-            let startIndex = i * partSize
-            let endIndex = (i == numberOfCards - 1) ? sentences.count : min(startIndex + partSize, sentences.count)
-            let snippetSentences = sentences[startIndex..<endIndex]
-            result.append(snippetSentences.joined(separator: ". ") + (endIndex != sentences.count ? "." : ""))
-        }
-
-        return result
-    }
-    
     private func shareArticle() {
         guard let url = URL(string: article.link) else { return }
         let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
