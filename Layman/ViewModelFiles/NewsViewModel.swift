@@ -15,8 +15,8 @@ class NewsViewModel: ObservableObject {
     @Published var todaysPicks: [NewsArticle] = []
     
     // ✅ ADD
-    @Published var laymanContent: [UUID: LaymanContent] = [:]
-    @Published var laymanLoadingIds: Set<UUID> = []
+    @Published var laymanContent: [String: LaymanContent] = [:]
+    @Published var laymanLoadingIds: Set<String> = []
     
     private let laymanService = LaymanTransformService()
     
@@ -46,35 +46,9 @@ class NewsViewModel: ObservableObject {
                 
                 self.featuredArticles = Array(validArticles.prefix(3))
                 self.todaysPicks = Array(validArticles.dropFirst(3))
-                
-                // PREFETCH (batch first, fallback to single)
+
                 Task {
-                    let batch = Array(validArticles.prefix(6))
-
-                    do {
-                        let results = try await laymanService.fetchBatchLaymanContent(articles: batch)
-
-                        await MainActor.run {
-                            for (id, content) in results {
-                                self.laymanContent[id] = content
-                            }
-                        }
-
-                        // ✅ fallback: check missing ones
-                        let missing = batch.filter { self.laymanContent[$0.id] == nil }
-
-                        for article in missing {
-                            self.fetchLaymanContent(for: article)
-                        }
-
-                    } catch {
-                        print("Batch failed, falling back to single:", error)
-
-                        // ✅ full fallback
-                        for article in batch {
-                            self.fetchLaymanContent(for: article)
-                        }
-                    }
+                    await self.prefetchLaymanContent(for: validArticles)
                 }
             } catch {
                 print("Error:", error)
@@ -103,14 +77,48 @@ class NewsViewModel: ObservableObject {
                 
             } catch {
                 print("Layman fetch error:", error)
-                await MainActor.run {
+                _ = await MainActor.run {
                     laymanLoadingIds.remove(article.id)
                 }
             }
         }
     }
-    
-    func fetchBatchLaymanContent(articles: [NewsArticle]) async throws -> [UUID: LaymanContent] {
-        try await laymanService.fetchBatchLaymanContent(articles: articles)
+
+    func prefetchLaymanContent(for articles: [NewsArticle]) async {
+        let pendingArticles = articles.filter {
+            laymanContent[$0.id] == nil && !laymanLoadingIds.contains($0.id)
+        }
+
+        guard !pendingArticles.isEmpty else { return }
+
+        for article in pendingArticles {
+            laymanLoadingIds.insert(article.id)
+        }
+
+        do {
+            let results = try await laymanService.fetchBatchLaymanContentInChunks(articles: pendingArticles)
+
+            for (id, content) in results {
+                laymanContent[id] = content
+                laymanLoadingIds.remove(id)
+            }
+
+            let missingArticles = pendingArticles.filter { results[$0.id] == nil }
+            for article in missingArticles {
+                laymanLoadingIds.remove(article.id)
+                fetchLaymanContent(for: article)
+            }
+        } catch {
+            print("Batch failed, falling back to single:", error)
+
+            for article in pendingArticles {
+                laymanLoadingIds.remove(article.id)
+                fetchLaymanContent(for: article)
+            }
+        }
+    }
+
+    func fetchBatchLaymanContent(articles: [NewsArticle]) async throws -> [String: LaymanContent] {
+        try await laymanService.fetchBatchLaymanContentInChunks(articles: articles)
     }
 }

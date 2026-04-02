@@ -64,11 +64,12 @@ struct LaymanTransformService {
     }
     
     // MARK: - ✅ BATCH (NEW)
-    func fetchBatchLaymanContent(articles: [NewsArticle]) async throws -> [UUID: LaymanContent] {
+    func fetchBatchLaymanContent(articles: [NewsArticle]) async throws -> [String: LaymanContent] {
+        guard !articles.isEmpty else { return [:] }
         
         let formattedInput = articles.map {
             """
-            ID: \($0.id.uuidString)
+            ID: \($0.id)
             Title: \($0.title)
             Description: \($0.description ?? "")
             """
@@ -108,21 +109,40 @@ struct LaymanTransformService {
         """
 
         let content = try await performRequest(prompt: prompt)
-        
+        print("RAW LLM OUTPUT:\n", content)
         let decoded = try content.decodeBatch()
         
-        var result: [UUID: LaymanContent] = [:]
+        var result: [String: LaymanContent] = [:]
         
         for item in decoded.results {
-            if let uuid = UUID(uuidString: item.id) {
-                result[uuid] = LaymanContent(
-                    headline: item.headline,
-                    cards: item.cards
-                )
-            }
+            result[item.id] = LaymanContent(
+                headline: item.headline,
+                cards: item.cards
+            )
         }
         
         return result
+    }
+
+    func fetchBatchLaymanContentInChunks(
+        articles: [NewsArticle],
+        chunkSize: Int = 2
+    ) async throws -> [String: LaymanContent] {
+        guard !articles.isEmpty else { return [:] }
+
+        var aggregated: [String: LaymanContent] = [:]
+
+        for chunkStart in stride(from: 0, to: articles.count, by: chunkSize) {
+            let chunkEnd = min(chunkStart + chunkSize, articles.count)
+            let chunk = Array(articles[chunkStart..<chunkEnd])
+            let partialResult = try await fetchBatchLaymanContent(articles: chunk)
+
+            for (id, content) in partialResult {
+                aggregated[id] = content
+            }
+        }
+
+        return aggregated
     }
     
     // MARK: - ✅ COMMON REQUEST HANDLER
@@ -137,12 +157,23 @@ struct LaymanTransformService {
             "model": "llama-3.1-8b-instant",
             "messages": [["role": "user", "content": prompt]],
             "max_tokens": 800,
-            "temperature": 0.3
+            "temperature": 0.3,
+            "response_format": ["type": "json_object"]
         ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        if let http = response as? HTTPURLResponse {
+            print("Status Code:", http.statusCode)
+            
+            if http.statusCode != 200 {
+                print("RAW ERROR RESPONSE:")
+                print(String(data: data, encoding: .utf8) ?? "No response body")
+                throw URLError(.badServerResponse)
+            }
+        }
 
         guard
             let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -161,10 +192,18 @@ struct LaymanTransformService {
 private extension String {
     
     func cleanJSON() -> String {
-        self
+        let cleaned = self
             .replacingOccurrences(of: "```json", with: "")
             .replacingOccurrences(of: "```", with: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // ✅ Extract ONLY JSON part
+        if let start = cleaned.firstIndex(of: "{"),
+           let end = cleaned.lastIndex(of: "}") {
+            return String(cleaned[start...end])
+        }
+        
+        return cleaned
     }
     
     func decodeSingle() throws -> LaymanContent {

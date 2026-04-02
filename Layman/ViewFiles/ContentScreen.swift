@@ -27,9 +27,20 @@ struct ContentScreenView: View {
     let primaryTextColor = Color.primaryText
     let accentColor = Color.accent
 
-    init(article: NewsArticle, isSaved: Bool = false, savedArticlesVM: SavedArticlesViewModel? = nil) {
+    init(
+        article: NewsArticle,
+        isSaved: Bool = false,
+        preloadedLaymanContent: LaymanContent? = nil,
+        savedArticlesVM: SavedArticlesViewModel? = nil
+    ) {
         self.article = article
-        self._viewModel = StateObject(wrappedValue: ContentViewModel(article: article, isInitiallySaved: isSaved))
+        self._viewModel = StateObject(
+            wrappedValue: ContentViewModel(
+                article: article,
+                isInitiallySaved: isSaved,
+                initialLaymanContent: preloadedLaymanContent
+            )
+        )
         self.savedArticlesVM = savedArticlesVM
     }
 
@@ -204,7 +215,11 @@ struct ContentScreenView: View {
             withAnimation(.easeOut(duration: 0.55)) {
                 animateContent = true
             }
-            viewModel.fetchLaymanContent()  // ← ADD THIS
+
+            // Only fetch if NOT already prefetched
+            if viewModel.laymanContent == nil {
+                viewModel.fetchLaymanContent()
+            }
         }
     }
 

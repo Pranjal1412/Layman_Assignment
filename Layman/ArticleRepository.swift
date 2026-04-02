@@ -49,7 +49,6 @@ struct ArticleRepository: ArticleRepositoryProtocol {
 
         return response.map {
             NewsArticle(
-                id: UUID(),
                 dbId: $0.id.uuidString,
                 title: $0.title,
                 link: $0.link,

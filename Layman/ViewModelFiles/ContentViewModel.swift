@@ -11,20 +11,22 @@ import Combine
 final class ContentViewModel: ObservableObject {
     @Published var isSaved: Bool
     @Published var errorMessage: String?
-    @Published var laymanContent: LaymanContent? = nil      // ADD
-    @Published var isLoadingLayman: Bool = false            // ADD
+    @Published var laymanContent: LaymanContent?
+    @Published var isLoadingLayman: Bool = false
 
     let article: NewsArticle
     private let articleRepository: ArticleRepositoryProtocol
-    private let laymanService = LaymanTransformService()    // ADD
+    private let laymanService = LaymanTransformService()
 
     init(
         article: NewsArticle,
         isInitiallySaved: Bool = false,
+        initialLaymanContent: LaymanContent? = nil,
         articleRepository: ArticleRepositoryProtocol = ArticleRepository()
     ) {
         self.article = article
         self.isSaved = isInitiallySaved
+        self.laymanContent = initialLaymanContent
         self.articleRepository = articleRepository
     }
 
@@ -32,14 +34,13 @@ final class ContentViewModel: ObservableObject {
         if let cards = laymanContent?.cards, !cards.isEmpty {
             return cards
         }
-        return ["Fetching simplified content..."]
+        return Array(repeating: "Simplifying this story for you...", count: 3)
     }
 
     var displayHeadline: String {
-            laymanContent?.headline ?? article.title
-        }
+        laymanContent?.headline ?? article.title
+    }
 
-        // ADD THIS
     func fetchLaymanContent() {
         guard laymanContent == nil, !isLoadingLayman else { return }
         isLoadingLayman = true
@@ -51,7 +52,6 @@ final class ContentViewModel: ObservableObject {
                     description: article.description
                 )
                 await MainActor.run {
-                    print(content.headline)
                     self.laymanContent = content
                     self.isLoadingLayman = false
                 }

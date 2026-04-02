@@ -40,7 +40,7 @@ struct SavedArticleScreen: View {
                         ScrollView {
                             VStack(spacing: 12) {
                                 ForEach(Array(viewModel.savedArticles.enumerated()), id: \.element.id) { index, article in
-                                    NavigationLink(destination: ContentScreenView(article: article, isSaved: true, savedArticlesVM: viewModel)) {
+                                    NavigationLink(destination: ContentScreenView(article: article, isSaved: true, preloadedLaymanContent: laymanVM.laymanContent[article.id], savedArticlesVM: viewModel)) {
                                         ArticleRow(article: article, viewModel: laymanVM)
                                     }
                                     .buttonStyle(PlainButtonStyle())
@@ -74,11 +74,15 @@ struct SavedArticleScreen: View {
         .animation(.easeInOut(duration: 0.25), value: viewModel.savedArticles.isEmpty)
         .animation(.easeInOut(duration: 0.25), value: viewModel.isLoading)
         .onAppear {
+            if hasLoadedOnce {
+                Task {
+                    await viewModel.fetch(showLoading: false)
+                }
+                return
+            }
             animateList = false
             Task {
                 await viewModel.fetch()
-                
-                // Batch simplify saved articles
                 let batch = Array(viewModel.savedArticles.prefix(6))
 
                 do {
@@ -109,6 +113,7 @@ struct SavedArticleScreen: View {
                     withAnimation(.easeOut(duration: 0.45)) {
                         animateList = true
                     }
+                    hasLoadedOnce = true
                 }
             }
         }

@@ -19,10 +19,11 @@ final class SavedArticlesViewModel: ObservableObject {
         self.articleRepository = articleRepository
     }
 
-    func fetch() async {
-        isLoading = true
+    @MainActor
+    func fetch(showLoading: Bool = true) async {
+        if showLoading { isLoading = true }
         errorMessage = nil
-        defer { isLoading = false }
+        defer { if showLoading { isLoading = false } }
 
         do {
             savedArticles = try await articleRepository.fetchSavedArticles()

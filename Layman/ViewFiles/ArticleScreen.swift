@@ -90,7 +90,12 @@ struct FeaturedCarousel: View {
         VStack(spacing: 15) {
             TabView(selection: $currentPage) {
                 ForEach(Array(articles.enumerated()), id: \.offset) { index, article in
-                    NavigationLink(destination: ContentScreenView(article: article)) {
+                    NavigationLink(
+                        destination: ContentScreenView(
+                            article: article,
+                            preloadedLaymanContent: viewModel.laymanContent[article.id]
+                        )
+                    ) {
                         FeaturedArticleCard(article: article, viewModel: viewModel)
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -163,7 +168,7 @@ struct FeaturedArticleCard: View {
                 // ✅ UPDATED HEADLINE
                 Text(
                     viewModel.laymanContent[article.id]?.headline ??
-                    (viewModel.laymanLoadingIds.contains(article.id) ? "Simplifying..." : article.title)
+                    article.title
                 )
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(.white)
@@ -174,10 +179,10 @@ struct FeaturedArticleCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 24))
         .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
         
-//        // ✅ TRIGGER FETCH
-//        .onAppear {
-//            viewModel.fetchLaymanContent(for: article)
-//        }
+        // ✅ TRIGGER FETCH
+        .onAppear {
+            viewModel.fetchLaymanContent(for: article)
+        }
     }
 }
 
@@ -221,7 +226,12 @@ struct TodaysPicksSection: View {
             // Article List
             VStack(spacing: 8) {
                 ForEach(Array(displayedArticles.enumerated()), id: \.element.id) { index, article in
-                    NavigationLink(destination: ContentScreenView(article: article)) {
+                    NavigationLink(
+                        destination: ContentScreenView(
+                            article: article,
+                            preloadedLaymanContent: viewModel.laymanContent[article.id]
+                        )
+                    ) {
                         ArticleRow(article: article, viewModel: viewModel)
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -276,7 +286,7 @@ struct ArticleRow: View {
             // ✅ UPDATED HEADLINE
             Text(
                 viewModel.laymanContent[article.id]?.headline ??
-                (viewModel.laymanLoadingIds.contains(article.id) ? "Simplifying..." : article.title)
+                article.title
             )
             .font(.system(size: 14, weight: .semibold))
             .foregroundColor(.primaryText)
@@ -292,8 +302,8 @@ struct ArticleRow: View {
         .padding(.horizontal, 16)
         
         // TRIGGER FETCH
-//        .onAppear {
-//            viewModel.fetchLaymanContent(for: article)
-//        }
+        .onAppear {
+            viewModel.fetchLaymanContent(for: article)
+        }
     }
 }

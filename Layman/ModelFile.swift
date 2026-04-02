@@ -8,7 +8,7 @@
 import Foundation
 
 struct NewsArticle: Identifiable, Codable {
-    var id = UUID()              // local Swift UUID for UI
+    var id: String { link }              // stable ID for UI
     var dbId: String? = nil           // Supabase row UUID
     let title: String
     let link: String
