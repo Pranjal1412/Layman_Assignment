@@ -29,99 +29,116 @@ struct AskLaymanModalView: View {
     let apiKey = ProcessInfo.processInfo.environment["Layman_API_Key"]
     
     private let brandOrange   = Color(hex: "#C0522A")
-    private let bubbleBg      = Color(hex: "#EDE5D8")   // AI bubble
-    private let userBubbleBg  = Color(hex: "#E8DDD0")   // user bubble
-    private let inputBarBg    = Color(hex: "#EFEBE4")   // input row bg
+    private let bubbleBg      = Color(hex: "#E4D5C1")
+    private let userBubbleBg  = Color(hex: "#F0E7DB")
+    private let inputBarBg    = Color(hex: "#EFEBE4")
     
     var body: some View {
-        VStack(spacing: 0) {
+        ZStack {
+            // Tap anywhere to dismiss keyboard
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    inputFocused = false
+                }
             
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
-                        
-                        ForEach(messages) { msg in
-                            ChatBubbleView(
-                                message: msg,
-                                brandOrange: brandOrange,
-                                bubbleBg: bubbleBg,
-                                userBubbleBg: userBubbleBg
-                            )
-                            .id(msg.id)
+            VStack(spacing: 0) {
+                
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 12) {
+                            
+                            ForEach(messages) { msg in
+                                ChatBubbleView(
+                                    message: msg,
+                                    brandOrange: brandOrange,
+                                    bubbleBg: bubbleBg,
+                                    userBubbleBg: userBubbleBg
+                                )
+                                .id(msg.id)
+                            }
+                            
+                            if isTyping {
+                                TypingIndicatorView(
+                                    brandOrange: Color.accent,
+                                    bubbleBg: bubbleBg
+                                )
+                            }
+                            
+                            if !suggestions.isEmpty && messages.count == 1 {
+                                SuggestionsView(
+                                    suggestions: suggestions,
+                                    brandOrange: brandOrange
+                                ) { suggestion in
+                                    sendMessage(suggestion)
+                                }
+                            }
                         }
-                        
-                        if isTyping {
-                            TypingIndicatorView(brandOrange: Color.accent,
-                                               bubbleBg: bubbleBg)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 16)
+                        .padding(.bottom, 12)
+                    }
+                    // Dismiss keyboard on scroll
+                    .gesture(
+                        DragGesture().onChanged { _ in
+                            inputFocused = false
                         }
-                        
-                        if !suggestions.isEmpty && messages.count == 1 {
-                            SuggestionsView(
-                                suggestions: suggestions,
-                                brandOrange: brandOrange
-                            ) { suggestion in
-                                sendMessage(suggestion)
+                    )
+                    .onChange(of: messages.count) { _, _ in
+                        if let last = messages.last {
+                            withAnimation {
+                                proxy.scrollTo(last.id, anchor: .bottom)
                             }
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 16)
-                    .padding(.bottom, 12)
-                }
-                .onChange(of: messages.count) { oldValue, newValue in
-                    if let last = messages.last {
-                        withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
-                    }
-                }
-            }
-            
-            // ── Input bar ──────────────────────────────────
-            HStack(spacing: 10) {
-                TextField("Type your question...", text: $inputText)
-                    .font(.system(size: 15))
-                    .foregroundColor(.primary)
-                    .focused($inputFocused)
-                    .submitLabel(.send)
-                    .onSubmit { sendMessage(inputText) }
-                
-                // Mic
-                Button {
-                    // mic placeholder
-                } label: {
-                    Image(systemName: "mic")
-                        .foregroundColor(Color(hex: "#9E8E7E"))
-                        .font(.system(size: 18))
                 }
                 
-                // Send
-                Button {
-                    sendMessage(inputText)
-                } label: {
-                    Image(systemName: "paperplane.fill")
-                        .foregroundColor(.white)
+                // Input bar
+                HStack(spacing: 10) {
+                    TextField("Type your question...", text: $inputText)
                         .font(.system(size: 15))
-                        .frame(width: 36, height: 36)
-                        .background(
-                            inputText.trimmingCharacters(in: .whitespaces).isEmpty
-                            ? Color(hex: "#C0522A").opacity(0.4)
-                            : Color.accent
-                        )
-                        .clipShape(Circle())
+                        .foregroundColor(.primary)
+                        .focused($inputFocused)
+                        .submitLabel(.send)
+                        .onSubmit { sendMessage(inputText) }
+                    
+                    Button {
+                        // mic placeholder
+                    } label: {
+                        Image(systemName: "mic")
+                            .foregroundColor(Color(hex: "#9E8E7E"))
+                            .font(.system(size: 18))
+                    }
+                    
+                    Button {
+                        sendMessage(inputText)
+                    } label: {
+                        Image(systemName: "paperplane.fill")
+                            .foregroundColor(.white)
+                            .font(.system(size: 15))
+                            .frame(width: 36, height: 36)
+                            .background(
+                                inputText.trimmingCharacters(in: .whitespaces).isEmpty
+                                ? Color.accent.opacity(0.4)
+                                : Color.accent
+                            )
+                            .clipShape(Circle())
+                    }
+                    .disabled(inputText.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
-                .disabled(inputText.trimmingCharacters(in: .whitespaces).isEmpty)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 100)
+                        .fill(inputBarBg)
+                        .shadow(color: .black.opacity(0.06), radius: 4, y: -2)
+                )
+                .padding(.horizontal, 16)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 0)
-                    .fill(inputBarBg)
-                    .shadow(color: .black.opacity(0.06), radius: 4, y: -2)
-            )
         }
-        // ✅ Always light/warm — ignores device dark mode for this sheet
         .background(Color.viewBackground)
         .preferredColorScheme(.light)
-        .onAppear { loadSuggestions() }
+        .onAppear { /* loadSuggestions() */ }
     }
     
     // MARK: - Send
@@ -255,8 +272,12 @@ struct ChatBubbleView: View {
                     Circle()
                         .fill(Color(hex: "#D0C4B8"))
                         .frame(width: 30, height: 30)
+                        .overlay(
+                            Circle()
+                                .strokeBorder(Color.accent, lineWidth: 1.0)
+                        )
                     Image(systemName: "person.fill")
-                        .foregroundColor(Color(hex: "#8A7A6E"))
+                        .foregroundColor(.accent)
                         .font(.system(size: 14))
                 }
             } else {

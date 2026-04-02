@@ -177,6 +177,8 @@ struct ContentScreenView: View {
                 .padding(.bottom, 10)
                 .sheet(isPresented: $showAskLayman) {
                     AskLaymanModalView(articleContext: article.description ?? "")
+                        .presentationDetents([.medium, .large])
+                        .presentationDragIndicator(.visible) // optional, gives that top bar
                 }
             }
             
