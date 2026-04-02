@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct AuthScreen: View {
+    @Environment(\.colorScheme) private var colorScheme
 
     @EnvironmentObject var viewModel: AuthViewModel
     @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
@@ -27,13 +28,7 @@ struct AuthScreen: View {
     var body: some View {
         NavigationStack {
             ZStack {
-
-                LinearGradient(colors: [Color(red: 0.906, green: 0.784, blue: 0.706),
-                                        Color(.white),
-                                        Color(red: 0.906, green: 0.784, blue: 0.706)],
-                               startPoint: .top,
-                               endPoint: .bottom
-                )
+                backgroundGradient
                 .ignoresSafeArea()
                 .onTapGesture {
                     UIApplication.shared.dismissKeyboard()
@@ -112,7 +107,7 @@ struct AuthScreen: View {
 
                         }
                         .padding(20)
-                        .background(Color(red: 1.0, green: 0.94, blue: 0.88))
+                        .background(formCardBackground)
                         .cornerRadius(24)
                         .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 6)
                         .padding(.horizontal, 20)
@@ -138,10 +133,30 @@ struct AuthScreen: View {
             }
         }
     }
+
+    private var backgroundGradient: LinearGradient {
+        let edgeColor = colorScheme == .dark
+            ? Color(red: 0.22, green: 0.17, blue: 0.14)
+            : Color(red: 0.906, green: 0.784, blue: 0.706)
+        let middleColor = colorScheme == .dark ? Color.viewBackground : .white
+
+        return LinearGradient(
+            colors: [edgeColor, middleColor, edgeColor],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
+    private var formCardBackground: Color {
+        colorScheme == .dark
+            ? Color(red: 0.16, green: 0.13, blue: 0.11)
+            : Color(red: 1.0, green: 0.94, blue: 0.88)
+    }
 }
 
 // MARK: - Custom TextField
 struct CustomTextField: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Binding var text: String
     var placeholder: String
     var systemImage: String
@@ -154,20 +169,33 @@ struct CustomTextField: View {
             ZStack(alignment: .leading) {
                 if text.isEmpty {
                     Text(placeholder)
-                        .foregroundColor(Color.orange.opacity(0.5))
+                        .foregroundColor(placeholderColor)
                 }
                 TextField("", text: $text)
-                    .foregroundColor(Color("AccentColor"))
+                    .foregroundColor(textColor)
             }
         }
         .padding()
-        .background(Color.white.opacity(0.5))
+        .background(fieldBackground)
         .cornerRadius(12)
+    }
+
+    private var placeholderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.45) : Color.orange.opacity(0.5)
+    }
+
+    private var textColor: Color {
+        colorScheme == .dark ? Color.primaryText : Color("AccentColor")
+    }
+
+    private var fieldBackground: Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.5)
     }
 }
 
 // MARK: - Custom Secure Field
 struct CustomSecureField: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Binding var text: String
     var placeholder: String
     @Binding var showText: Bool
@@ -180,14 +208,14 @@ struct CustomSecureField: View {
             ZStack(alignment: .leading) {
                 if text.isEmpty {
                     Text(placeholder)
-                        .foregroundColor(Color.orange.opacity(0.5))
+                        .foregroundColor(placeholderColor)
                 }
                 if showText {
                     TextField("", text: $text)
-                        .foregroundColor(Color("AccentColor"))
+                        .foregroundColor(textColor)
                 } else {
                     SecureField("", text: $text)
-                        .foregroundColor(Color("AccentColor"))
+                        .foregroundColor(textColor)
                 }
             }
 
@@ -199,8 +227,20 @@ struct CustomSecureField: View {
             }
         }
         .padding()
-        .background(Color.white.opacity(0.5))
+        .background(fieldBackground)
         .cornerRadius(12)
+    }
+
+    private var placeholderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.45) : Color.orange.opacity(0.5)
+    }
+
+    private var textColor: Color {
+        colorScheme == .dark ? Color.primaryText : Color("AccentColor")
+    }
+
+    private var fieldBackground: Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.5)
     }
 }
 

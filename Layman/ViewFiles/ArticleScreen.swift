@@ -59,7 +59,7 @@ struct Layman_NavBar: View {
                         .font(.system(size: 18, weight: .medium))
                         .foregroundColor(Color.primaryText)
                         .frame(width: 36, height: 36)
-                        .background(Color(red: 0.95, green: 0.93, blue: 0.90))
+                        .background(Color.cellBackground)
                         .clipShape(Circle())
                 }
             }
@@ -206,7 +206,7 @@ struct TodaysPicksSection: View {
                     .buttonStyle(PlainButtonStyle())
                 }
             }
-            .background(Color.white.opacity(0.45))
+            .background(Color.cellBackground.opacity(0.8))
             .cornerRadius(16)
         }
     }
@@ -251,7 +251,7 @@ struct ArticleRow: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 23)
-                .fill(Color(red: 0.95, green: 0.93, blue: 0.90))
+                .fill(Color.cellBackground)
         )
         .padding(.horizontal, 16)
     }

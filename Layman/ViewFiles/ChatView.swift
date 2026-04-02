@@ -15,6 +15,7 @@ struct ChatMessage: Identifiable {
 }
 
 struct AskLaymanModalView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let articleContext: String
     
     @State private var messages: [ChatMessage] = [
@@ -27,11 +28,6 @@ struct AskLaymanModalView: View {
     @FocusState private var inputFocused: Bool
     
     let apiKey = ProcessInfo.processInfo.environment["Layman_API_Key"]
-    
-    private let brandOrange   = Color(hex: "#C0522A")
-    private let bubbleBg      = Color(hex: "#E4D5C1")
-    private let userBubbleBg  = Color(hex: "#F0E7DB")
-    private let inputBarBg    = Color(hex: "#EFEBE4")
     
     var body: some View {
         ZStack {
@@ -52,8 +48,8 @@ struct AskLaymanModalView: View {
                                 ChatBubbleView(
                                     message: msg,
                                     brandOrange: brandOrange,
-                                    bubbleBg: bubbleBg,
-                                    userBubbleBg: userBubbleBg
+                                    bubbleBg: assistantBubbleBackground,
+                                    userBubbleBg: userBubbleBackground
                                 )
                                 .id(msg.id)
                             }
@@ -61,7 +57,7 @@ struct AskLaymanModalView: View {
                             if isTyping {
                                 TypingIndicatorView(
                                     brandOrange: Color.accent,
-                                    bubbleBg: bubbleBg
+                                    bubbleBg: assistantBubbleBackground
                                 )
                             }
                             
@@ -130,15 +126,30 @@ struct AskLaymanModalView: View {
                 .padding(.vertical, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 100)
-                        .fill(inputBarBg)
+                        .fill(inputBarBackground)
                         .shadow(color: .black.opacity(0.06), radius: 4, y: -2)
                 )
                 .padding(.horizontal, 16)
             }
         }
         .background(Color.viewBackground)
-        .preferredColorScheme(.light)
         .onAppear { /* loadSuggestions() */ }
+    }
+
+    private var brandOrange: Color {
+        Color.accent
+    }
+
+    private var assistantBubbleBackground: Color {
+        colorScheme == .dark ? Color(red: 0.22, green: 0.18, blue: 0.15) : Color(hex: "#E4D5C1")
+    }
+
+    private var userBubbleBackground: Color {
+        colorScheme == .dark ? Color(red: 0.18, green: 0.16, blue: 0.14) : Color(hex: "#F0E7DB")
+    }
+
+    private var inputBarBackground: Color {
+        colorScheme == .dark ? Color(red: 0.14, green: 0.12, blue: 0.10) : Color(hex: "#EFEBE4")
     }
     
     // MARK: - Send
@@ -251,6 +262,7 @@ struct AskLaymanModalView: View {
 // MARK: - Chat Bubble
 
 struct ChatBubbleView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let message: ChatMessage
     let brandOrange: Color
     let bubbleBg: Color
@@ -262,7 +274,7 @@ struct ChatBubbleView: View {
                 Spacer(minLength: 40)
                 Text(message.text)
                     .font(.system(size: 14))
-                    .foregroundColor(Color(hex: "#3A2E26"))
+                    .foregroundColor(messageTextColor)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .background(userBubbleBg)
@@ -292,7 +304,7 @@ struct ChatBubbleView: View {
                 }
                 Text(message.text)
                     .font(.system(size: 14))
-                    .foregroundColor(Color(hex: "#3A2E26"))
+                    .foregroundColor(messageTextColor)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .background(bubbleBg)
@@ -301,11 +313,16 @@ struct ChatBubbleView: View {
             }
         }
     }
+
+    private var messageTextColor: Color {
+        colorScheme == .dark ? Color.primaryText : Color(hex: "#3A2E26")
+    }
 }
 
 // MARK: - Typing Indicator
 
 struct TypingIndicatorView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let brandOrange: Color
     let bubbleBg: Color
     @State private var phase = 0
@@ -322,7 +339,7 @@ struct TypingIndicatorView: View {
             HStack(spacing: 5) {
                 ForEach(0..<3, id: \.self) { i in
                     Circle()
-                        .fill(Color(hex: "#9E8E7E"))
+                        .fill(typingDotColor)
                         .frame(width: 7, height: 7)
                         .scaleEffect(phase == i ? 1.4 : 1.0)
                         .animation(.easeInOut(duration: 0.3), value: phase)
@@ -336,11 +353,16 @@ struct TypingIndicatorView: View {
         }
         .onReceive(timer) { _ in phase = (phase + 1) % 3 }
     }
+
+    private var typingDotColor: Color {
+        colorScheme == .dark ? Color.primaryText.opacity(0.65) : Color(hex: "#9E8E7E")
+    }
 }
 
 // MARK: - Suggestions
 
 struct SuggestionsView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let suggestions: [String]
     let brandOrange: Color
     let onTap: (String) -> Void
@@ -349,7 +371,7 @@ struct SuggestionsView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Question Suggestions:")
                 .font(.system(size: 12, weight: .medium))
-                .foregroundColor(Color(hex: "#9E8E7E"))
+                .foregroundColor(labelColor)
                 .padding(.leading, 2)
             
             ForEach(suggestions, id: \.self) { suggestion in
@@ -366,6 +388,10 @@ struct SuggestionsView: View {
             }
         }
         .padding(.top, 4)
+    }
+
+    private var labelColor: Color {
+        colorScheme == .dark ? Color.primaryText.opacity(0.65) : Color(hex: "#9E8E7E")
     }
 }
 

@@ -9,7 +9,8 @@ import SwiftUI
 import UIKit
 
 struct WelcomeScreen: View {
-    
+    @Environment(\.colorScheme) private var colorScheme
+
     var onContinue: () -> Void
     
     @StateObject private var viewModel = WelcomeViewModel()
@@ -31,16 +32,8 @@ struct WelcomeScreen: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                
-                LinearGradient(
-                    gradient: Gradient(stops: [
-                        .init(color: Color(red: 0.906, green: 0.784, blue: 0.706), location: 0.0),
-                        .init(color: .white, location: 0.5),
-                        .init(color: Color(red: 0.906, green: 0.784, blue: 0.706), location: 1.0)
-                    ]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+
+                backgroundGradient
                 .ignoresSafeArea()
                 
                 VStack {
@@ -122,6 +115,23 @@ struct WelcomeScreen: View {
 
         }
         .padding(.horizontal, 30)
+    }
+
+    private var backgroundGradient: LinearGradient {
+        let topColor = colorScheme == .dark
+            ? Color(red: 0.22, green: 0.17, blue: 0.14)
+            : Color(red: 0.906, green: 0.784, blue: 0.706)
+        let centerColor = colorScheme == .dark ? Color.viewBackground : .white
+
+        return LinearGradient(
+            gradient: Gradient(stops: [
+                .init(color: topColor, location: 0.0),
+                .init(color: centerColor, location: 0.5),
+                .init(color: topColor, location: 1.0)
+            ]),
+            startPoint: .top,
+            endPoint: .bottom
+        )
     }
 }
 

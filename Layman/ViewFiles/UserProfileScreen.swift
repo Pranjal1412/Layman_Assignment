@@ -94,7 +94,7 @@ struct UserProfileScreen: View {
                     primaryText: Color.primaryText
                 )
             }
-            .background(Color.white)
+            .background(Color.cellBackground)
             .cornerRadius(16)
             .padding(.horizontal, 20)
             .shadow(color: Color.accentColor.opacity(0.2), radius: 16, x: 0, y: 2)
@@ -119,7 +119,7 @@ struct UserProfileScreen: View {
             .foregroundColor(Color.accentColor)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
-            .background(Color.white)
+            .background(Color.cellBackground)
             .cornerRadius(26)
             .overlay(
                 RoundedRectangle(cornerRadius: 26)

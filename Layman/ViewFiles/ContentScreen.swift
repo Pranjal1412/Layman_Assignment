@@ -39,7 +39,7 @@ struct ContentScreenView: View {
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(primaryTextColor)
                         .frame(width: 38, height: 38)
-                        .background(Color(red: 0.95, green: 0.93, blue: 0.90))
+                        .background(Color.cellBackground)
                         .clipShape(Circle())
                 }
                 
@@ -128,7 +128,7 @@ struct ContentScreenView: View {
                                 .padding(20)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 190)
-                                .background(Color.white)
+                                .background(Color.cellBackground)
                                 .clipShape(RoundedRectangle(cornerRadius: 24))
                                 .padding(.horizontal, 20)
                                 .tag(index)

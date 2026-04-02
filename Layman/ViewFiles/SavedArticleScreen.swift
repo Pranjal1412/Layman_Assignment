@@ -54,7 +54,7 @@ struct SavedArticleScreen: View {
                         .progressViewStyle(CircularProgressViewStyle(tint: .accentColor))
                         .scaleEffect(1.5)
                         .padding(30)
-                        .background(Color.white)
+                        .background(Color.cellBackground)
                         .cornerRadius(16)
                     Spacer()
                 }
