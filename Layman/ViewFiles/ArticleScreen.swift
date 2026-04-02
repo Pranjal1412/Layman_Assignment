@@ -30,7 +30,7 @@ struct ArticleScreen: View {
             .background(Color.viewBackground)
             .onAppear {
                 if viewModel.featuredArticles.isEmpty {
-//                    viewModel.loadNews()
+                    viewModel.loadNews()
                 }
             }
         }
@@ -206,7 +206,7 @@ struct TodaysPicksSection: View {
                     .buttonStyle(PlainButtonStyle())
                 }
             }
-            .background(Color.cellBackground.opacity(0.8))
+            .background(Color.viewBackground)
             .cornerRadius(16)
         }
     }

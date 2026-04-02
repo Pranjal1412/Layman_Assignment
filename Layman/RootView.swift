@@ -14,15 +14,19 @@ struct RootView: View {
     var body: some View {
         ZStack {
             if isCheckingSession {
-                ProgressView("Fetching Your News...")
+                ProgressView()
                     .progressViewStyle(CircularProgressViewStyle())
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(.accent)
                     .transition(.opacity)
             } else if authVM.isAuthenticated {
                 TabbarView(onSignOut: {
-                    withAnimation { isCheckingSession = true }
-                    Task { await authVM.logout() }
+                    Task {
+                        await authVM.logout()
+                        withAnimation {
+                            isCheckingSession = false
+                        }
+                    }
                 })
                 .environmentObject(authVM)
                 .transition(.opacity)

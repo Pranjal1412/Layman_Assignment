@@ -103,7 +103,6 @@ struct AskLaymanModalView: View {
                         .submitLabel(.send)
                         .onSubmit { sendMessage(inputText) }
                     
-                    // ✅ UPDATED MIC BUTTON
                     Button {
                         if speechRecognizer.isRecording {
                             speechRecognizer.stopRecording()
@@ -157,6 +156,10 @@ struct AskLaymanModalView: View {
             }
             .onAppear {
                 haptic.prepare()
+                
+                if !suggestionsLoaded {
+                    loadSuggestions()
+                }
             }
         }
         .background(Color.viewBackground)
@@ -242,6 +245,56 @@ struct AskLaymanModalView: View {
             } catch {
                 await MainActor.run { isTyping = false }
                 print("Error:", error)
+            }
+        }
+    }
+
+    private func loadSuggestions() {
+        let prompt = """
+        You are Layman. Given this article context: \(articleContext), \
+        generate exactly 3 short question suggestions a curious reader might ask. \
+        Return ONLY a JSON array of 3 strings, nothing else. Example: ["Q1?","Q2?","Q3?"]
+        """
+
+        Task {
+            do {
+                let url = URL(string: "https://api.groq.com/openai/v1/chat/completions")!
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.setValue("Bearer \(apiKey ?? "")", forHTTPHeaderField: "Authorization")
+
+                let body: [String: Any] = [
+                    "model": "llama-3.1-8b-instant",
+                    "messages": [["role": "user", "content": prompt]],
+                    "max_tokens": 200,
+                    "temperature": 0.3
+                ]
+
+                request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+                let (data, _) = try await URLSession.shared.data(for: request)
+
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let choices = json["choices"] as? [[String: Any]],
+                   let message = choices.first?["message"] as? [String: Any],
+                   let content = message["content"] as? String,
+                   let jsonData = content.data(using: .utf8),
+                   let array = try? JSONDecoder().decode([String].self, from: jsonData) {
+                    
+                    await MainActor.run {
+                        withAnimation {
+                            suggestions = array
+                            suggestionsLoaded = true
+                        }
+                    }
+                } else {
+                    await MainActor.run { suggestionsLoaded = true }
+                }
+
+            } catch {
+                await MainActor.run { suggestionsLoaded = true }
+                print("Error loading suggestions:", error)
             }
         }
     }

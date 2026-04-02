@@ -120,7 +120,6 @@ struct UserProfileScreen: View {
     private var signOutButton: some View {
         Button(action: {
             Task {
-                await authVM.logout()
                 onSignOut?()
             }
         }) {
