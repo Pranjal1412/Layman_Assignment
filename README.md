@@ -53,11 +53,12 @@ Layman_News_Key=pub_a3e4ccef886e4f91bb835c9732833b0a
 
 ### AI API
 To create your API key
-Step 1: go to https://console.groq.com/keys
-Step 2: Click on Create API Key
-Step 3: Set the name and expiration
-Step 4: Copy the API Key
-step 5: paste this API key in Environment variable of Xcode **Product → Scheme → Edit Scheme → Run → Environment Variables**
+* Step 1: go to https://console.groq.com/keys
+* Step 2: Click on Create API Key
+* Step 3: Set the name and expiration
+* Step 4: Copy the API Key
+* Step 5: paste this API key in Environment variable of Xcode **Product → Scheme → Edit Scheme → Run → Environment Variables**
+
 PLEASE ENSURE THAT THE NAME GIVEN TO THE KEY IN ENVIRONMENT VARIABLE IS 'Layman_API_Key' for functioning of the app
 ```env
 Layman_API_Key=your_groq_api_key
