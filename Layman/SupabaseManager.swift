@@ -13,11 +13,20 @@ final class SupabaseManager {
     
     let client: SupabaseClient
     
-    private init() {
-        self.client = SupabaseClient(
-                    supabaseURL: URL(string: "https://kbyeghoowqmccgsuyotk.supabase.co")!,
-                    supabaseKey: "sb_publishable_3YkawHAzUJnhSbLBaQYaYA_cmgRGiDq",
-                    options: SupabaseClientOptions(auth: .init(emitLocalSessionAsInitialSession: true)))
-    }
+    private let supabaseURLString = ProcessInfo.processInfo.environment["SUPABASE_URL"] ?? ""
+    private let supabaseKey = ProcessInfo.processInfo.environment["SUPABASE_KEY"] ?? ""
     
+    private init() {
+        guard let url = URL(string: supabaseURLString), !supabaseKey.isEmpty else {
+            fatalError("Supabase configuration missing. Check environment variables.")
+        }
+        
+        self.client = SupabaseClient(
+            supabaseURL: url,
+            supabaseKey: supabaseKey,
+            options: SupabaseClientOptions(
+                auth: .init(emitLocalSessionAsInitialSession: true)
+            )
+        )
+    }
 }
